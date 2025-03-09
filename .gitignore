@@ -1,0 +1,3 @@
+# Node.js Gereksiz Dosyalar
+node_modules/
+.env
