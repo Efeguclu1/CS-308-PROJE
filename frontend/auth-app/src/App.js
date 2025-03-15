@@ -4,19 +4,21 @@ import Products from "./pages/Products";
 import Register from "./pages/Register"; // ✅ Kayıt sayfasını eklediğimize emin olalım
 import Login from "./pages/Login";
 import NavigationBar from "./components/Navbar"; // ✅ Navbar'ı ekledik
+import Footer from "./components/Footer";
 
 function App() {
   return (
     <Router>
       <NavigationBar /> {/* ✅ Navbar her sayfada gözükecek */}
-      <div className="container mt-4">
+      <main>
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/products" element={<Products />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
         </Routes>
-      </div>
+      </main>
+      <Footer />
     </Router>
   );
 }

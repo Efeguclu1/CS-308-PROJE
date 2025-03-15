@@ -1,24 +1,117 @@
-import { Container, Button, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Carousel } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import './Homepage.scss';
 
 const Homepage = () => {
   return (
-    <Container className="text-center">
-      <h1 className="mt-5">Hoş Geldiniz!</h1>
-      <p>Online mağazamıza göz atın ve en iyi ürünleri keşfedin.</p>
-      <Row className="mt-4">
-        <Col>
-          <Link to="/products">
-            <Button variant="primary" size="lg">Ürünleri Gör</Button>
-          </Link>
-        </Col>
-        <Col>
-          <Link to="/login">
-            <Button variant="success" size="lg">Giriş Yap</Button>
-          </Link>
-        </Col>
-      </Row>
-    </Container>
+    <div className="homepage">
+      {/* Hero Banner */}
+      <section className="hero-section">
+        <Container>
+          <Carousel className="hero-carousel">
+            <Carousel.Item>
+              <div className="carousel-image slide1"></div>
+              <Carousel.Caption>
+                <h2>Yeni iPhone 15 Pro</h2>
+                <p>En yeni iPhone modellerini keşfedin</p>
+                <Link to="/products/phones">
+                  <Button variant="primary">Satın Al</Button>
+                </Link>
+              </Carousel.Caption>
+            </Carousel.Item>
+            <Carousel.Item>
+              <div className="carousel-image slide2"></div>
+              <Carousel.Caption>
+                <h2>Oyun Deneyimini Yükselt</h2>
+                <p>En son oyun ekipmanları ile performansını artır</p>
+                <Link to="/products/gaming">
+                  <Button variant="primary">Keşfet</Button>
+                </Link>
+              </Carousel.Caption>
+            </Carousel.Item>
+          </Carousel>
+        </Container>
+      </section>
+
+      {/* Top Deals Section */}
+      <section className="deals-section">
+        <Container>
+          <div className="section-header">
+            <h2>Günün Fırsatları</h2>
+            <Link to="/products/deals" className="view-all">Tümünü Gör</Link>
+          </div>
+          <Row>
+            {[1, 2, 3, 4].map((item) => (
+              <Col lg={3} md={6} className="mb-4" key={item}>
+                <Card className="product-card">
+                  <div className="product-badge">İNDİRİM</div>
+                  <div className="product-image product-{item}"></div>
+                  <Card.Body>
+                    <Card.Title>Teknoloji Ürünü {item}</Card.Title>
+                    <div className="price-container">
+                      <span className="current-price">₺{(1299 - item * 100).toLocaleString()}</span>
+                      <span className="old-price">₺1.299</span>
+                    </div>
+                    <div className="product-rating">
+                      <span className="stars">★★★★<span className="gray-star">★</span></span>
+                      <span className="rating-count">(42)</span>
+                    </div>
+                    <Button variant="primary" className="mt-2 w-100">Sepete Ekle</Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Container>
+      </section>
+
+      {/* Categories Section */}
+      <section className="categories-section">
+        <Container>
+          <div className="section-header">
+            <h2>Popüler Kategoriler</h2>
+          </div>
+          <Row>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/computers" className="category-card">
+                <div className="category-image laptops"></div>
+                <p>Laptoplar</p>
+              </Link>
+            </Col>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/phones" className="category-card">
+                <div className="category-image phones"></div>
+                <p>Telefonlar</p>
+              </Link>
+            </Col>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/tv" className="category-card">
+                <div className="category-image tvs"></div>
+                <p>Televizyonlar</p>
+              </Link>
+            </Col>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/gaming" className="category-card">
+                <div className="category-image gaming"></div>
+                <p>Gaming</p>
+              </Link>
+            </Col>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/audio" className="category-card">
+                <div className="category-image audio"></div>
+                <p>Ses</p>
+              </Link>
+            </Col>
+            <Col xs={6} md={4} lg={2} className="mb-4">
+              <Link to="/products/wearables" className="category-card">
+                <div className="category-image wearables"></div>
+                <p>Giyilebilir</p>
+              </Link>
+            </Col>
+          </Row>
+        </Container>
+      </section>
+    </div>
   );
 };
 
