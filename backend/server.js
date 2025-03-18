@@ -29,8 +29,11 @@ app.use("/api/auth", authRoutes);
 const productRoutes = require("./routes/productRoutes");
 app.use("/api/products", productRoutes);
 
+// ✅ Rating Routes
+const ratingRoutes = require("./routes/ratingRoutes");
+app.use("/api/ratings", ratingRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
 });
