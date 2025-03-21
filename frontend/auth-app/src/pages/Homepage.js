@@ -12,20 +12,20 @@ const Homepage = () => {
             <Carousel.Item>
               <div className="carousel-image slide1"></div>
               <Carousel.Caption>
-                <h2>Yeni iPhone 15 Pro</h2>
-                <p>En yeni iPhone modellerini keşfedin</p>
+                <h2>New iPhone 15 Pro</h2>
+                <p>Discover the newest iPhone models</p>
                 <Link to="/products/phones">
-                  <Button variant="primary">Satın Al</Button>
+                  <Button variant="primary">Buy Now</Button>
                 </Link>
               </Carousel.Caption>
             </Carousel.Item>
             <Carousel.Item>
               <div className="carousel-image slide2"></div>
               <Carousel.Caption>
-                <h2>Oyun Deneyimini Yükselt</h2>
-                <p>En son oyun ekipmanları ile performansını artır</p>
+                <h2>Upgrade Your Gaming Experience</h2>
+                <p>Improve your performance with the latest gaming equipment</p>
                 <Link to="/products/gaming">
-                  <Button variant="primary">Keşfet</Button>
+                  <Button variant="primary">Explore</Button>
                 </Link>
               </Carousel.Caption>
             </Carousel.Item>
@@ -37,26 +37,26 @@ const Homepage = () => {
       <section className="deals-section">
         <Container>
           <div className="section-header">
-            <h2>Günün Fırsatları</h2>
-            <Link to="/products/deals" className="view-all">Tümünü Gör</Link>
+            <h2>Today's Deals</h2>
+            <Link to="/products/deals" className="view-all">View All</Link>
           </div>
           <Row>
             {[1, 2, 3, 4].map((item) => (
               <Col lg={3} md={6} className="mb-4" key={item}>
                 <Card className="product-card">
-                  <div className="product-badge">İNDİRİM</div>
+                  <div className="product-badge">SALE</div>
                   <div className="product-image product-{item}"></div>
                   <Card.Body>
-                    <Card.Title>Teknoloji Ürünü {item}</Card.Title>
+                    <Card.Title>Tech Product {item}</Card.Title>
                     <div className="price-container">
-                      <span className="current-price">₺{(1299 - item * 100).toLocaleString()}</span>
-                      <span className="old-price">₺1.299</span>
+                      <span className="current-price">${(1299 - item * 100).toLocaleString()}</span>
+                      <span className="old-price">$1,299</span>
                     </div>
                     <div className="product-rating">
                       <span className="stars">★★★★<span className="gray-star">★</span></span>
                       <span className="rating-count">(42)</span>
                     </div>
-                    <Button variant="primary" className="mt-2 w-100">Sepete Ekle</Button>
+                    <Button variant="primary" className="mt-2 w-100">Add to Cart</Button>
                   </Card.Body>
                 </Card>
               </Col>
@@ -69,25 +69,25 @@ const Homepage = () => {
       <section className="categories-section">
         <Container>
           <div className="section-header">
-            <h2>Popüler Kategoriler</h2>
+            <h2>Popular Categories</h2>
           </div>
           <Row>
             <Col xs={6} md={4} lg={2} className="mb-4">
               <Link to="/products/computers" className="category-card">
                 <div className="category-image laptops"></div>
-                <p>Laptoplar</p>
+                <p>Laptops</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
               <Link to="/products/phones" className="category-card">
                 <div className="category-image phones"></div>
-                <p>Telefonlar</p>
+                <p>Phones</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
               <Link to="/products/tv" className="category-card">
                 <div className="category-image tvs"></div>
-                <p>Televizyonlar</p>
+                <p>Televisions</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
@@ -99,13 +99,13 @@ const Homepage = () => {
             <Col xs={6} md={4} lg={2} className="mb-4">
               <Link to="/products/audio" className="category-card">
                 <div className="category-image audio"></div>
-                <p>Ses</p>
+                <p>Audio</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
               <Link to="/products/wearables" className="category-card">
                 <div className="category-image wearables"></div>
-                <p>Giyilebilir</p>
+                <p>Wearables</p>
               </Link>
             </Col>
           </Row>
