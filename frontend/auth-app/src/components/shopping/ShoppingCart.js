@@ -1,82 +1,95 @@
 import React from 'react';
-import { Container, ListGroup, Button, Badge } from 'react-bootstrap';
-import { BsTrash, BsDash, BsPlus } from 'react-icons/bs';
+import { Card, ListGroup, Button, Form, Badge } from 'react-bootstrap';
 
-const ShoppingCart = ({ cartItems, setCartItems, onCheckout }) => {
-  const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+const ShoppingCart = ({ cartItems, onUpdateQuantity, onRemoveItem, onCheckout, total }) => {
+  // Function to handle quantity changes
+  const handleQuantityChange = (itemId, newQuantity) => {
+    // Allow any value, including zero, which will trigger removal
+    onUpdateQuantity(itemId, newQuantity);
   };
-
-  const updateQuantity = (productId, change) => {
-    setCartItems(prevItems =>
-      prevItems.map(item => {
-        if (item.id === productId) {
-          const newQuantity = item.quantity + change;
-          return newQuantity > 0
-            ? { ...item, quantity: newQuantity }
-            : null;
-        }
-        return item;
-      }).filter(Boolean)
-    );
-  };
-
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
-    <Container className="my-4">
-      <h3>Shopping Cart</h3>
-      {cartItems.length === 0 ? (
-        <div className="text-center my-5">
-          <h5 className="text-muted">Your cart is empty</h5>
-        </div>
-      ) : (
-        <>
-          <ListGroup className="mb-3">
-            {cartItems.map(item => (
-              <ListGroup.Item
-                key={item.id}
-                className="d-flex justify-content-between align-items-center"
+    <div className="shopping-cart">
+      <Card>
+        <Card.Header>
+          <h4 className="mb-0">Shopping Cart</h4>
+        </Card.Header>
+        <Card.Body>
+          {cartItems.length === 0 ? (
+            <p className="text-center text-muted">Your cart is empty</p>
+          ) : (
+            <>
+              <ListGroup variant="flush">
+                {cartItems.map((item) => (
+                  <ListGroup.Item key={item.id} className="d-flex flex-column">
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <h6 className="my-0">{item.name}</h6>
+                        <small className="text-muted">${parseFloat(item.price).toFixed(2)} each</small>
+                      </div>
+                      <Badge bg="info" pill className="d-flex align-items-center">
+                        Qty: {item.quantity}
+                      </Badge>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-muted fw-bold">Subtotal: ${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mt-2">
+                      <div className="d-flex align-items-center">
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm"
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          // Remove the disabled condition to allow decreasing to zero
+                        >
+                          -
+                        </Button>
+                        <Form.Control
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                          className="mx-2 text-center quantity-input"
+                          style={{ width: '50px' }}
+                        />
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm"
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <Button 
+                        variant="outline-danger" 
+                        size="sm"
+                        onClick={() => onRemoveItem(item.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+              
+              <div className="mt-3 d-flex justify-content-between">
+                <h5>Total:</h5>
+                <h5>${parseFloat(total).toFixed(2)}</h5>
+              </div>
+              
+              <Button 
+                variant="primary" 
+                className="w-100 mt-3"
+                onClick={onCheckout}
+                disabled={cartItems.length === 0}
               >
-                <div>
-                  <h6 className="mb-0">{item.name}</h6>
-                  <small className="text-muted">${item.price}</small>
-                </div>
-                <div className="d-flex align-items-center">
-                  <Button
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, -1)}
-                  >
-                    <BsDash />
-                  </Button>
-                  <span className="mx-2">{item.quantity}</span>
-                  <Button
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, 1)}
-                  >
-                    <BsPlus />
-                  </Button>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    className="ms-2"
-                    onClick={() => removeFromCart(item.id)}
-                  >
-                    <BsTrash />
-                  </Button>
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-          <div className="d-flex justify-content-between align-items-center">
-            <h5>Total: <Badge bg="success">${total.toFixed(2)}</Badge></h5>
-            <Button variant="primary" onClick={onCheckout}>Proceed to Checkout</Button>
-          </div>
-        </>
-      )}
-    </Container>
+                Proceed to Checkout
+              </Button>
+            </>
+          )}
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 

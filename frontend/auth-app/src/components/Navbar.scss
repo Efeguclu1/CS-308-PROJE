@@ -159,17 +159,40 @@
     flex-wrap: wrap;
     
     .nav-link {
-      color: #0046be;
+      color: #444;
+      padding: 0.5rem 0.75rem;
       font-weight: 500;
-      font-size: 0.9rem;
-      padding: 5px 10px;
-      white-space: nowrap;
+      transition: all 0.2s ease;
+      border-bottom: 2px solid transparent;
       
-      &:hover {
-        text-decoration: underline;
+      &:hover, &:focus {
+        color: #007bff;
+        border-bottom-color: #007bff;
+      }
+      
+      &[as="button"] {
+        background: none;
+        border: none;
+        cursor: pointer;
       }
     }
   }
+}
+
+// Add styling for cart badge
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 // Responsive adjustments

@@ -1,72 +1,86 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Tab, Nav } from 'react-bootstrap';
 import ProductList from './ProductList';
 import ShoppingCart from './ShoppingCart';
-import Checkout from './Checkout';
+import { useCart } from '../../context/CartContext';
+import { Container, Row, Col, Alert } from 'react-bootstrap';
 
 const ShoppingPage = () => {
-  const [activeTab, setActiveTab] = useState('products');
-  const [cartItems, setCartItems] = useState([]);
+  const { cartItems, addToCart, updateCartItemQuantity, removeFromCart, getCartTotal } = useCart();
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successProduct, setSuccessProduct] = useState(null);
 
+  // Handler for adding products to cart
   const handleAddToCart = (product) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevItems, { ...product, quantity: 1 }];
-    });
+    addToCart(product);
+    
+    // Set the product name for the success message
+    setSuccessProduct(product.name);
+    
+    // Show success message briefly
+    setShowSuccessMessage(true);
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 3000);
   };
 
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Handler for updating cart item quantity
+  const handleUpdateQuantity = (itemId, newQuantity) => {
+    updateCartItemQuantity(itemId, newQuantity);
+  };
+
+  // Handler for removing items from cart
+  const handleRemoveItem = (itemId) => {
+    removeFromCart(itemId);
+  };
+
+  // Handler for checkout process
+  const handleCheckout = () => {
+    // Navigate to checkout page
+    window.location.href = '/checkout';
+  };
 
   return (
-    <Container fluid className="py-4">
-      <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
-        <Row>
-          <Col>
-            <Nav variant="tabs" className="mb-4">
-              <Nav.Item>
-                <Nav.Link eventKey="products">Products</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="cart">
-                  Cart ({cartItems.reduce((sum, item) => sum + item.quantity, 0)})
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link 
-                  eventKey="checkout"
-                  disabled={cartItems.length === 0}
-                >
-                  Checkout
-                </Nav.Link>
-              </Nav.Item>
-            </Nav>
+    <>
+      <div className="bg-light py-3 mb-4">
+        <Container>
+          <h1 className="text-center mb-0">TECHSTORE Shopping</h1>
+        </Container>
+      </div>
+      
+      <Container className="my-4">
+        {showSuccessMessage && (
+          <Alert 
+            variant="success" 
+            dismissible 
+            onClose={() => setShowSuccessMessage(false)}
+            className="animate__animated animate__fadeIn"
+          >
+            <Alert.Heading>Success!</Alert.Heading>
+            <p>
+              <strong>{successProduct}</strong> has been added to your cart successfully!
+            </p>
+          </Alert>
+        )}
 
-            <Tab.Content>
-              <Tab.Pane eventKey="products">
-                <ProductList onAddToCart={handleAddToCart} />
-              </Tab.Pane>
-              <Tab.Pane eventKey="cart">
-                <ShoppingCart
-                  cartItems={cartItems}
-                  setCartItems={setCartItems}
-                  onCheckout={() => setActiveTab('checkout')}
-                />
-              </Tab.Pane>
-              <Tab.Pane eventKey="checkout">
-                <Checkout cartItems={cartItems} total={total} />
-              </Tab.Pane>
-            </Tab.Content>
+        <Row>
+          <Col lg={8} className="mb-4 mb-lg-0">
+            <ProductList onAddToCart={handleAddToCart} />
+          </Col>
+          
+          <Col lg={4}>
+            <div className="sticky-top" style={{ top: '20px' }}>
+              <ShoppingCart
+                cartItems={cartItems}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemoveItem={handleRemoveItem}
+                onCheckout={handleCheckout}
+                total={getCartTotal()}
+              />
+            </div>
           </Col>
         </Row>
-      </Tab.Container>
-    </Container>
+      </Container>
+    </>
   );
 };
 

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Homepage from "./pages/Homepage";
 import Products from "./pages/Products";
-import Register from "./pages/Register"; // Make sure we've added the registration page
+import Register from "./pages/Register"; 
 import Login from "./pages/Login";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -12,6 +12,8 @@ import CheckoutRegister from "./pages/CheckoutRegister"; // Added custom registr
 import NavigationBar from "./components/Navbar"; // Added Navbar
 import Footer from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
+import ProductDetails from "./components/shopping/ProductDetails";
+import ShoppingPage from "./components/shopping/ShoppingPage"; 
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Homepage />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/shopping" element={<ShoppingPage />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cart" element={<Cart />} />

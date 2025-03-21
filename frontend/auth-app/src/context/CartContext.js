@@ -6,6 +6,12 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (product) => {
+    // Ensure price is stored as a number
+    const productWithNumericPrice = {
+      ...product,
+      price: parseFloat(product.price)
+    };
+    
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
@@ -15,7 +21,7 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-      return [...prevItems, { ...product, quantity: 1 }];
+      return [...prevItems, { ...productWithNumericPrice, quantity: 1 }];
     });
   };
 
@@ -23,22 +29,25 @@ export const CartProvider = ({ children }) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const updateQuantity = (productId, change) => {
-    setCartItems(prevItems =>
-      prevItems.map(item => {
-        if (item.id === productId) {
-          const newQuantity = item.quantity + change;
-          return newQuantity > 0
-            ? { ...item, quantity: newQuantity }
-            : null;
-        }
-        return item;
-      }).filter(Boolean)
-    );
+  // Renamed from updateQuantity to match what's used in ShoppingPage
+  const updateCartItemQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      // If quantity is zero or negative, remove the item from cart
+      removeFromCart(productId);
+    } else {
+      setCartItems(prevItems =>
+        prevItems.map(item => {
+          if (item.id === productId) {
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        })
+      );
+    }
   };
 
   const getCartTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return cartItems.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
   };
 
   const getCartCount = () => {
@@ -49,7 +58,7 @@ export const CartProvider = ({ children }) => {
     cartItems,
     addToCart,
     removeFromCart,
-    updateQuantity,
+    updateCartItemQuantity, // Changed from updateQuantity
     getCartTotal,
     getCartCount
   };
