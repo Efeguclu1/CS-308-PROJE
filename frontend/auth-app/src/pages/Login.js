@@ -1,8 +1,9 @@
-import { useState } from "react";
-import axios from "axios";
+import React, { useState } from 'react';
 import { Container, Form, Button, Card, Row, Col, Alert } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "./Auth.scss";
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,9 +11,18 @@ const Login = () => {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState(""); // "success" or "danger"
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Get the return path from location state, default to '/'
+  const from = location.state?.from || '/';
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     
     try {
       const response = await axios.post("http://localhost:5000/api/auth/login", {
@@ -21,18 +31,15 @@ const Login = () => {
       });
 
       if (response && response.data) {
-        const { token, userId } = response.data;
+        // Login işlemini gerçekleştir
+        login(response.data);
         
-        // Store token in localStorage
-        localStorage.setItem("token", token);
-        localStorage.setItem("userId", userId);
-        
-        setMessage("Login successful! Redirecting to homepage...");
+        setMessage("Login successful! Redirecting...");
         setMessageType("success");
         
-        // Redirect to homepage after successful login
+        // Redirect after successful login
         setTimeout(() => {
-          navigate('/');
+          navigate(from);
         }, 1500);
       } else {
         setMessage("An unexpected error occurred!");
@@ -42,12 +49,14 @@ const Login = () => {
       console.error("Login Error:", error);
       
       if (error.response) {
-        setMessage("Login failed: " + error.response.data.error);
+        setError(error.response.data.error || 'Failed to login. Please try again.');
         setMessageType("danger");
       } else {
-        setMessage("Could not connect to server. Is the backend running?");
+        setError("Could not connect to server. Is the backend running?");
         setMessageType("danger");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,6 +87,12 @@ const Login = () => {
                 {message && (
                   <Alert variant={messageType} className="mb-4">
                     {message}
+                  </Alert>
+                )}
+                
+                {error && (
+                  <Alert variant="danger" onClose={() => setError('')} dismissible>
+                    {error}
                   </Alert>
                 )}
                 
@@ -125,8 +140,9 @@ const Login = () => {
                       type="submit" 
                       className="py-2 fw-bold"
                       size="lg"
+                      disabled={loading}
                     >
-                      Login
+                      {loading ? 'Logging in...' : 'Login'}
                     </Button>
                   </div>
                   

@@ -29,6 +29,10 @@ export const CartProvider = ({ children }) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
   // Renamed from updateQuantity to match what's used in ShoppingPage
   const updateCartItemQuantity = (productId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -58,9 +62,10 @@ export const CartProvider = ({ children }) => {
     cartItems,
     addToCart,
     removeFromCart,
-    updateCartItemQuantity, // Changed from updateQuantity
+    updateCartItemQuantity,
     getCartTotal,
-    getCartCount
+    getCartCount,
+    clearCart
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

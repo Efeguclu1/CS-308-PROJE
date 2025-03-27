@@ -1,30 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import './Checkout.scss';
 
 const Payment = () => {
-  const { cartItems, getCartTotal } = useCart();
+  const { cartItems, getCartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  const [paymentDetails, setPaymentDetails] = useState({
+  const [paymentInfo, setPaymentInfo] = useState({
     cardName: '',
     cardNumber: '',
-    expiryMonth: '',
-    expiryYear: '',
+    expirationMonth: '',
+    expirationYear: '',
     cvv: '',
     saveCard: false
   });
   
   const [validated, setValidated] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setPaymentDetails(prevState => ({
-      ...prevState,
+    setPaymentInfo(prev => ({
+      ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
   };
@@ -39,33 +42,53 @@ const Payment = () => {
 
   const handleCardNumberChange = (e) => {
     const formatted = formatCardNumber(e.target.value);
-    setPaymentDetails(prevState => ({
+    setPaymentInfo(prevState => ({
       ...prevState,
       cardNumber: formatted
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const form = e.currentTarget;
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
+    setLoading(true);
+    setError('');
 
-    // Validate card number (basic validation)
-    const cardNumberDigits = paymentDetails.cardNumber.replace(/\D/g, '');
-    if (cardNumberDigits.length !== 16) {
-      setMessage('Card number must be 16 digits.');
-      setMessageType('danger');
-      return;
+    try {
+      // Kart numarasından boşlukları temizle
+      const cleanCardNumber = paymentInfo.cardNumber.replace(/\s/g, '');
+      
+      // Validate card info
+      if (!cleanCardNumber || !paymentInfo.cardName || !paymentInfo.expirationMonth || 
+          !paymentInfo.expirationYear || !paymentInfo.cvv) {
+        throw new Error('Please fill in all card information');
+      }
+
+      if (cleanCardNumber.length !== 16) {
+        throw new Error('Card number must be 16 digits');
+      }
+
+      if (paymentInfo.cvv.length !== 3) {
+        throw new Error('CVV must be 3 digits');
+      }
+
+      // Store payment info in sessionStorage for review
+      sessionStorage.setItem('paymentInfo', JSON.stringify({
+        cardNumber: cleanCardNumber,
+        cardName: paymentInfo.cardName,
+        expirationMonth: paymentInfo.expirationMonth,
+        expirationYear: paymentInfo.expirationYear,
+        cvv: paymentInfo.cvv
+      }));
+      
+      // Navigate to review page
+      navigate('/checkout/review');
+      
+    } catch (err) {
+      console.error('Validation Error:', err);
+      setError(err.message || 'Please check your card information.');
+    } finally {
+      setLoading(false);
     }
-    
-    // Process payment and continue to review
-    console.log('Payment details:', paymentDetails);
-    navigate('/checkout/review');
   };
 
   const currentYear = new Date().getFullYear();
@@ -132,9 +155,9 @@ const Payment = () => {
               <Card.Body className="p-4">
                 <h2 className="checkout-section-title mb-4">Payment Information</h2>
                 
-                {message && (
-                  <Alert variant={messageType} onClose={() => setMessage('')} dismissible>
-                    {message}
+                {error && (
+                  <Alert variant="danger" onClose={() => setError('')} dismissible>
+                    {error}
                   </Alert>
                 )}
                 
@@ -158,7 +181,7 @@ const Payment = () => {
                     <Form.Control
                       type="text"
                       name="cardName"
-                      value={paymentDetails.cardName}
+                      value={paymentInfo.cardName}
                       onChange={handleInputChange}
                       className="checkout-input"
                       placeholder="Enter name as shown on card"
@@ -175,7 +198,7 @@ const Payment = () => {
                       <Form.Control
                         type="text"
                         name="cardNumber"
-                        value={paymentDetails.cardNumber}
+                        value={paymentInfo.cardNumber}
                         onChange={handleCardNumberChange}
                         className="checkout-input"
                         placeholder="xxxx xxxx xxxx xxxx"
@@ -198,8 +221,8 @@ const Payment = () => {
                         <Col xs={6}>
                           <Form.Group className="mb-3">
                             <Form.Select
-                              name="expiryMonth"
-                              value={paymentDetails.expiryMonth}
+                              name="expirationMonth"
+                              value={paymentInfo.expirationMonth}
                               onChange={handleInputChange}
                               className="checkout-input"
                               required
@@ -219,8 +242,8 @@ const Payment = () => {
                         <Col xs={6}>
                           <Form.Group className="mb-3">
                             <Form.Select
-                              name="expiryYear"
-                              value={paymentDetails.expiryYear}
+                              name="expirationYear"
+                              value={paymentInfo.expirationYear}
                               onChange={handleInputChange}
                               className="checkout-input"
                               required
@@ -245,7 +268,7 @@ const Payment = () => {
                         <Form.Control
                           type="password"
                           name="cvv"
-                          value={paymentDetails.cvv}
+                          value={paymentInfo.cvv}
                           onChange={handleInputChange}
                           className="checkout-input"
                           placeholder="***"
@@ -265,7 +288,7 @@ const Payment = () => {
                         type="checkbox"
                         id="saveCard"
                         name="saveCard"
-                        checked={paymentDetails.saveCard}
+                        checked={paymentInfo.saveCard}
                         onChange={handleInputChange}
                         label="Save card information"
                       />
@@ -291,8 +314,9 @@ const Payment = () => {
                       variant="primary"
                       type="submit"
                       className="checkout-button"
+                      disabled={loading}
                     >
-                      Continue to Review
+                      {loading ? 'Processing...' : 'Continue to Review'}
                     </Button>
                   </div>
                 </Form>

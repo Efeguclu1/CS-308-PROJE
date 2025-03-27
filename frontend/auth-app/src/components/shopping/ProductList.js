@@ -8,11 +8,10 @@ const ProductList = ({ onAddToCart }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Implement actual API endpoint
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5001/api/products');
+        const response = await axios.get('http://localhost:5000/api/products');
         setProducts(response.data);
         setError(null);
       } catch (err) {

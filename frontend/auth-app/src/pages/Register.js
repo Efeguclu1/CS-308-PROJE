@@ -5,10 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import './Auth.scss';
 
 const Register = () => {
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [address, setAddress] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState(""); // "success" or "danger"
   const navigate = useNavigate();
@@ -25,9 +26,10 @@ const Register = () => {
     
     try {
       const response = await axios.post("http://localhost:5000/api/auth/register", {
-        username,
+        name,
         email,
         password,
+        address
       });
 
       if (response && response.data) {
@@ -87,13 +89,13 @@ const Register = () => {
                 
                 <Form onSubmit={handleRegister}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Username</Form.Label>
+                    <Form.Label>Full Name</Form.Label>
                     <Form.Control 
                       type="text" 
                       className="form-control py-2" 
-                      placeholder="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)} 
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)} 
                       required 
                     />
                   </Form.Group>
@@ -106,6 +108,19 @@ const Register = () => {
                       placeholder="email@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)} 
+                      required 
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Address</Form.Label>
+                    <Form.Control 
+                      as="textarea" 
+                      rows={3}
+                      className="form-control py-2" 
+                      placeholder="Enter your full address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)} 
                       required 
                     />
                   </Form.Group>

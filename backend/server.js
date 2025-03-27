@@ -10,7 +10,7 @@ const app = express();
 
 // ✅ CORS Middleware'i ekleyelim
 app.use(cors({
-  origin: "http://localhost:3000", // 📌 Frontend'in çalıştığı URL
+  origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"], // Frontend'in çalışabileceği tüm portlar
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
