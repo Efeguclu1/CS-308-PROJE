@@ -20,7 +20,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('http://localhost:5001/api/products');
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -35,7 +35,7 @@ const Products = () => {
   const fetchProductsByCategory = async (categoryId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/products/category/${categoryId}`);
+      const response = await axios.get(`http://localhost:5001/api/products/category/${categoryId}`);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -55,7 +55,7 @@ const Products = () => {
     
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/products/search/${query}`);
+      const response = await axios.get(`http://localhost:5001/api/products/search/${query}`);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -69,7 +69,7 @@ const Products = () => {
   // Function to fetch categories
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products/categories/all');
+      const response = await axios.get('http://localhost:5001/api/products/categories/all');
       setCategories(response.data);
     } catch (err) {
       console.error('Error fetching categories:', err);

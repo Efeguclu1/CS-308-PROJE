@@ -1,0 +1,33 @@
+.review-approval-container {
+  .review-table {
+    th, td {
+      vertical-align: middle;
+    }
+
+    .rating {
+      display: flex;
+      align-items: center;
+      
+      .star {
+        color: #d3d3d3;
+        margin-right: 2px;
+        
+        &.filled {
+          color: #ffc107;
+        }
+      }
+    }
+    
+    .review-comment {
+      max-width: 400px;
+      white-space: normal;
+      word-break: break-word;
+    }
+  }
+
+  .btn-success, .btn-danger {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+} 

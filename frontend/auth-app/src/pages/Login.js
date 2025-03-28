@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Row, Col, Alert } from "react-bootstrap";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "./Auth.scss";
@@ -12,12 +12,26 @@ const Login = () => {
   const [messageType, setMessageType] = useState(""); // "success" or "danger"
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Get the return path from location state, default to '/'
   const from = location.state?.from || '/';
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User is already logged in, redirecting to:', from);
+      
+      // If coming from checkout, redirect to shipping
+      if (from.includes('/checkout')) {
+        navigate('/checkout/shipping');
+      } else {
+        navigate(from);
+      }
+    }
+  }, [isAuthenticated, user, navigate, from]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,7 +39,7 @@ const Login = () => {
     setError('');
     
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await axios.post("http://localhost:5001/api/auth/login", {
         email,
         password,
       });
@@ -39,7 +53,12 @@ const Login = () => {
         
         // Redirect after successful login
         setTimeout(() => {
-          navigate(from);
+          // If coming from checkout, redirect to shipping
+          if (from.includes('/checkout')) {
+            navigate('/checkout/shipping');
+          } else {
+            navigate(from);
+          }
         }, 1500);
       } else {
         setMessage("An unexpected error occurred!");
@@ -59,6 +78,18 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // If user is authenticated, show loading while redirecting
+  if (isAuthenticated && user) {
+    return (
+      <Container className="py-5 text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Already logged in, redirecting...</p>
+      </Container>
+    );
+  }
 
   return (
     <div className="login-page">

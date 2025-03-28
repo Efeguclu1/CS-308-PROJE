@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import ProductReviews from '../products/ProductReviews';
+import AddReview from '../products/AddReview';
 import axios from 'axios';
 import './ProductDetails.scss';
 
@@ -11,13 +13,14 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshReviews, setRefreshReviews] = useState(0);
   const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const response = await axios.get(`http://localhost:5001/api/products/${id}`);
         setProduct(response.data);
         setError(null);
       } catch (err) {
@@ -34,6 +37,11 @@ const ProductDetails = () => {
   const handleAddToCart = () => {
     addToCart(product);
     // Show some kind of notification or feedback here
+  };
+
+  const handleReviewAdded = () => {
+    // Trigger a refresh of the reviews
+    setRefreshReviews(prev => prev + 1);
   };
 
   if (loading) {
@@ -72,7 +80,7 @@ const ProductDetails = () => {
         &larr; Back to Products
       </Button>
 
-      <Card className="product-detail-card">
+      <Card className="product-detail-card mb-4">
         <Card.Body>
           <Row>
             <Col md={6} className="product-info">
@@ -124,6 +132,44 @@ const ProductDetails = () => {
           </Row>
         </Card.Body>
       </Card>
+
+      <Tabs defaultActiveKey="reviews" id="product-tabs" className="mb-3">
+        <Tab eventKey="reviews" title="Reviews">
+          <ProductReviews 
+            productId={id} 
+            key={`reviews-${refreshReviews}`}  
+          />
+          <AddReview 
+            productId={id} 
+            onReviewAdded={handleReviewAdded} 
+          />
+        </Tab>
+        <Tab eventKey="specifications" title="Specifications">
+          <Card>
+            <Card.Body>
+              <h3>Product Specifications</h3>
+              <ListGroup variant="flush">
+                <ListGroup.Item>
+                  <strong>Model:</strong> {product.model}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Warranty:</strong> {product.warranty_months} months
+                </ListGroup.Item>
+                {product.serial_number && (
+                  <ListGroup.Item>
+                    <strong>Serial Number:</strong> {product.serial_number}
+                  </ListGroup.Item>
+                )}
+                {product.distributor_info && (
+                  <ListGroup.Item>
+                    <strong>Distributor Information:</strong> {product.distributor_info}
+                  </ListGroup.Item>
+                )}
+              </ListGroup>
+            </Card.Body>
+          </Card>
+        </Tab>
+      </Tabs>
     </Container>
   );
 };

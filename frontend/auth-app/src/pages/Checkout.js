@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Nav, Alert, Tabs, Tab } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import './Checkout.scss';
 
 const Checkout = () => {
   const { cartItems, getCartTotal } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('signin');
   const [email, setEmail] = useState('');
@@ -18,6 +20,14 @@ const Checkout = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User is already logged in, redirecting to shipping');
+      navigate('/checkout/shipping');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -57,6 +67,20 @@ const Checkout = () => {
           <Button variant="primary" onClick={() => navigate('/products')}>
             Go to Products
           </Button>
+        </div>
+      </Container>
+    );
+  }
+
+  // If user is authenticated, we should not see this page (will redirect in useEffect)
+  if (isAuthenticated && user) {
+    return (
+      <Container className="checkout-page my-5">
+        <div className="text-center py-5">
+          <h2>Redirecting to shipping...</h2>
+          <div className="spinner-border mt-3" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
         </div>
       </Container>
     );

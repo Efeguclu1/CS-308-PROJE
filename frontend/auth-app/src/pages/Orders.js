@@ -20,7 +20,7 @@ const Orders = () => {
     console.log('Fetching orders for user ID:', user.id);
     
     try {
-      const response = await axios.get(`http://localhost:5000/api/orders/user/${user.id}`);
+      const response = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
       console.log('Orders response:', response.data);
       
       // Yanıt array ise sakla, değilse boş array kullan

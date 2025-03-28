@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Navbar, Nav, Container, Form, Button, InputGroup } from "react-bootstrap";
+import { Navbar, Nav, Container, Form, Button, InputGroup, NavDropdown } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './Navbar.scss';
 
@@ -9,6 +10,7 @@ const NavigationBar = () => {
   const [expanded, setExpanded] = useState(false);
   const [categories, setCategories] = useState([]);
   const { getCartCount } = useCart();
+  const { user, logout } = useAuth();
   const cartCount = getCartCount();
   const navigate = useNavigate();
 
@@ -16,7 +18,7 @@ const NavigationBar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products/categories/all');
+        const response = await axios.get('http://localhost:5001/api/products/categories/all');
         setCategories(response.data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -34,6 +36,13 @@ const NavigationBar = () => {
       navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
       setExpanded(false);
     }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setExpanded(false);
   };
 
   // Navigate to category products
@@ -57,6 +66,9 @@ const NavigationBar = () => {
   };
 
   const categoryMapping = getCategoryMapping();
+
+  // Check if user is a product manager
+  const isProductManager = user && user.role === 'product_manager';
 
   return (
     <>
@@ -85,9 +97,42 @@ const NavigationBar = () => {
               <Nav.Link as={Link} to="/products" className="nav-link">
                 <i className="bi bi-grid"></i> Products
               </Nav.Link>
-              <Nav.Link as={Link} to="/login" className="nav-link">
-                <i className="bi bi-person"></i> Login
-              </Nav.Link>
+              
+              {user ? (
+                <>
+                  <NavDropdown 
+                    title={
+                      <span>
+                        <i className="bi bi-person-circle"></i> {user.name}
+                      </span>
+                    } 
+                    id="user-dropdown"
+                  >
+                    <NavDropdown.Item as={Link} to="/orders">
+                      <i className="bi bi-box"></i> My Orders
+                    </NavDropdown.Item>
+                    
+                    {isProductManager && (
+                      <>
+                        <NavDropdown.Divider />
+                        <NavDropdown.Item as={Link} to="/admin/review-approval">
+                          <i className="bi bi-check-square"></i> Review Approval
+                        </NavDropdown.Item>
+                      </>
+                    )}
+                    
+                    <NavDropdown.Divider />
+                    <NavDropdown.Item onClick={handleLogout}>
+                      <i className="bi bi-box-arrow-right"></i> Logout
+                    </NavDropdown.Item>
+                  </NavDropdown>
+                </>
+              ) : (
+                <Nav.Link as={Link} to="/login" className="nav-link">
+                  <i className="bi bi-person"></i> Login
+                </Nav.Link>
+              )}
+              
               <Nav.Link as={Link} to="/cart" className="nav-link cart-link position-relative">
                 <div>
                   <i className="bi bi-cart"></i>
