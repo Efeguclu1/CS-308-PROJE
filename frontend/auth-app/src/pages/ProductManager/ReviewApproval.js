@@ -25,7 +25,7 @@ const ReviewApproval = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products');
+        const response = await axios.get('http://localhost:5000/api/products');
         setProducts(response.data);
       } catch (err) {
         console.error('Error fetching products:', err);
@@ -46,7 +46,7 @@ const ReviewApproval = () => {
 
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5001/api/ratings/admin/product/${selectedProduct}`);
+        const response = await axios.get(`http://localhost:5000/api/ratings/admin/product/${selectedProduct}`);
         // Filter for reviews with comments that are not approved
         const pending = response.data.filter(
           review => review.comment && review.comment_approved === 0
@@ -66,7 +66,7 @@ const ReviewApproval = () => {
 
   const handleApprove = async (reviewId) => {
     try {
-      await axios.put(`http://localhost:5001/api/ratings/approve/${reviewId}`);
+      await axios.put(`http://localhost:5000/api/ratings/approve/${reviewId}`);
       
       // Update local state
       setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));
@@ -82,7 +82,7 @@ const ReviewApproval = () => {
 
   const handleReject = async (reviewId) => {
     try {
-      await axios.delete(`http://localhost:5001/api/ratings/${reviewId}`);
+      await axios.delete(`http://localhost:5000/api/ratings/${reviewId}`);
       
       // Update local state
       setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));

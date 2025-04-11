@@ -18,7 +18,7 @@ const NavigationBar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products/categories/all');
+        const response = await axios.get('http://localhost:5000/api/products/categories/all');
         setCategories(response.data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -108,6 +108,10 @@ const NavigationBar = () => {
                     } 
                     id="user-dropdown"
                   >
+                    <NavDropdown.Item as={Link} to="/profile">
+                      <i className="bi bi-person"></i> My Profile
+                    </NavDropdown.Item>
+                    
                     <NavDropdown.Item as={Link} to="/orders">
                       <i className="bi bi-box"></i> My Orders
                     </NavDropdown.Item>

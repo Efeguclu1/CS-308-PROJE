@@ -13,21 +13,34 @@ const Orders = () => {
   const [retryCount, setRetryCount] = useState(0);
 
   const fetchOrders = async () => {
-    if (!user || !user.id) return;
+    if (!user || !user.id) {
+      console.log('No user ID found');
+      return;
+    }
 
     setLoading(true);
     setError('');
     console.log('Fetching orders for user ID:', user.id);
+    console.log('User object:', user);
     
     try {
-      const response = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
-      console.log('Orders response:', response.data);
+      const response = await axios.get(
+        `http://localhost:5000/api/orders/user/${user.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      console.log('Orders API Response:', response);
+      console.log('Orders data:', response.data);
       
-      // Yanıt array ise sakla, değilse boş array kullan
       setOrders(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching orders:', err);
+      console.error('Full error object:', JSON.stringify(err, null, 2));
       
       if (err.response) {
         console.error('Error response:', err.response.data);

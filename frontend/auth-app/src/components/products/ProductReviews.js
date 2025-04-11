@@ -14,7 +14,7 @@ const ProductReviews = ({ productId }) => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5001/api/ratings/product/${productId}`);
+        const response = await axios.get(`http://localhost:5000/api/ratings/product/${productId}`);
         setReviews(response.data.ratings);
         setStats(response.data.stats);
         setError(null);
