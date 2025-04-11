@@ -2,25 +2,28 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
-// Test endpoint
-router.get('/test', (req, res) => {
-  res.json({ message: 'Order routes are working' });
-});
-
 // Kullanıcının siparişlerini getir
 router.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
-  
   console.log('Fetching orders for user ID:', userId);
+  console.log('Request headers:', req.headers);
+  console.log('Request params:', req.params);
   
   try {
-    // Önce veritabanı bağlantısını kontrol et
-    db.query('SELECT 1', (err) => {
-      if (err) {
-        console.error('Database connection error:', err);
-        return res.status(500).json({ success: false, error: 'Database connection error' });
-      }
-    });
+    // Veritabanı bağlantısını kontrol et
+    await db.promise().query('SELECT 1');
+    console.log('Database connection is working');
+
+    // Önce kullanıcının var olduğunu kontrol et
+    const [users] = await db.promise().query(
+      'SELECT id FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      console.log('User not found:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Kullanıcının siparişlerini getir
     const [orders] = await db.promise().query(
@@ -28,10 +31,11 @@ router.get('/user/:userId', async (req, res) => {
       [userId]
     );
     
-    console.log('Found orders:', orders.length);
+    console.log('Found orders:', orders);
     
     // Eğer hiç sipariş yoksa, boş array dön
     if (orders.length === 0) {
+      console.log('No orders found for user:', userId);
       return res.json([]);
     }
     
@@ -48,7 +52,7 @@ router.get('/user/:userId', async (req, res) => {
           [order.id]
         );
         
-        console.log(`Found ${items.length} items for order ${order.id}`);
+        console.log(`Found ${items.length} items for order ${order.id}:`, items);
         
         ordersWithItems.push({
           ...order,
@@ -56,7 +60,6 @@ router.get('/user/:userId', async (req, res) => {
         });
       } catch (itemError) {
         console.error(`Error fetching items for order ${order.id}:`, itemError);
-        // Hata olsa bile siparişi ekle, ama boş ürün listesi ile
         ordersWithItems.push({
           ...order,
           items: []
@@ -64,15 +67,15 @@ router.get('/user/:userId', async (req, res) => {
       }
     }
     
+    console.log('Sending response with orders:', ordersWithItems);
     res.json(ordersWithItems);
   } catch (error) {
     console.error('Error fetching orders:', error);
-    if (error.code) {
-      console.error('Error code:', error.code);
-    }
-    if (error.sqlMessage) {
-      console.error('SQL error:', error.sqlMessage);
-    }
+    console.error('Error details:', {
+      code: error.code,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack
+    });
     
     res.status(500).json({ 
       success: false, 

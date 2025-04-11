@@ -18,6 +18,7 @@ import ShoppingPage from "./components/shopping/ShoppingPage";
 import OrderSuccess from './pages/OrderSuccess';
 import Orders from './pages/Orders';
 import ReviewApproval from './pages/ProductManager/ReviewApproval';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
               <Route path="/checkout/review" element={<Review />} />
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/orders" element={<Orders />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/admin/review-approval" element={<ReviewApproval />} />
             </Routes>
           </main>
