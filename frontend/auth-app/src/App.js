@@ -1,55 +1,93 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Homepage from "./pages/Homepage";
-import Products from "./pages/Products";
-import Register from "./pages/Register"; 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Shipping from "./pages/Shipping";
 import Payment from "./pages/Payment";
-import Review from "./pages/Review";
-import CheckoutRegister from "./pages/CheckoutRegister"; // Added custom registration page for checkout
-import NavigationBar from "./components/Navbar"; // Added Navbar
+import NavigationBar from "./components/Navbar";
 import Footer from "./components/Footer";
-import { CartProvider } from "./context/CartContext";
-import { AuthProvider } from "./context/AuthContext";
-import ProductDetails from "./components/shopping/ProductDetails";
-import ShoppingPage from "./components/shopping/ShoppingPage"; 
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import Review from './pages/Review';
 import OrderSuccess from './pages/OrderSuccess';
+import Profile from './pages/Profile';
 import Orders from './pages/Orders';
 import ReviewApproval from './pages/ProductManager/ReviewApproval';
-import Profile from './pages/Profile';
+import ProductDetails from './components/shopping/ProductDetails';
+import ProtectedRoute from './components/ProtectedRoute';
+import { setupAxiosInterceptors } from './utils/auth';
+import axios from 'axios';
+
+// Set up axios interceptors
+setupAxiosInterceptors(axios);
 
 function App() {
+  // Add some debug logs for local storage
+  useEffect(() => {
+    console.log('App mounted, checking auth state');
+    console.log('Token in localStorage:', localStorage.getItem('token'));
+    console.log('UserData in localStorage:', localStorage.getItem('userData'));
+  }, []);
+
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-          <NavigationBar /> {/* Navbar will appear on every page */}
-          <main>
+    <Router>
+      <AuthProvider>
+        <CartProvider>
+          <NavigationBar />
+          <main className="min-vh-100">
             <Routes>
               <Route path="/" element={<Homepage />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/shopping" element={<ShoppingPage />} />
-              <Route path="/products/:id" element={<ProductDetails />} />
-              <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/checkout/register" element={<CheckoutRegister />} />
-              <Route path="/checkout/shipping" element={<Shipping />} />
-              <Route path="/checkout/payment" element={<Payment />} />
-              <Route path="/checkout/review" element={<Review />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
-              <Route path="/orders" element={<Orders />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/admin/review-approval" element={<ReviewApproval />} />
+              
+              {/* Checkout flow */}
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/shipping" element={
+                <ProtectedRoute>
+                  <Shipping />
+                </ProtectedRoute>
+              } />
+              <Route path="/checkout/payment" element={
+                <ProtectedRoute>
+                  <Payment />
+                </ProtectedRoute>
+              } />
+              <Route path="/checkout/review" element={
+                <ProtectedRoute>
+                  <Review />
+                </ProtectedRoute>
+              } />
+              
+              {/* Other protected routes */}
+              <Route path="/order-success" element={
+                <ProtectedRoute>
+                  <OrderSuccess />
+                </ProtectedRoute>
+              } />
+              <Route path="/orders" element={
+                <ProtectedRoute>
+                  <Orders />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/review-approval" element={
+                <ProtectedRoute requiredRole="product_manager">
+                  <ReviewApproval />
+                </ProtectedRoute>
+              } />
             </Routes>
           </main>
           <Footer />
-        </Router>
-      </CartProvider>
-    </AuthProvider>
+        </CartProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const verifyToken = require('./middleware/auth');
 const app = express();
 
 // Middleware
@@ -9,6 +10,7 @@ app.use(express.json());
 // Request logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
   next();
 });
 
@@ -17,6 +19,7 @@ const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const ratingRoutes = require("./routes/ratingRoutes");
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
@@ -31,11 +34,24 @@ app.use('/api/orders', (req, res, next) => {
   next();
 });
 
-// Route handlers
+// Test endpoint for token verification
+app.get('/api/test-auth', verifyToken, (req, res) => {
+  console.log('Test auth endpoint called, verified user:', req.user);
+  res.json({ 
+    success: true, 
+    message: 'Token is valid', 
+    user: req.user 
+  });
+});
+
+// Public routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/payment", paymentRoutes);
-app.use("/api/orders", orderRoutes);
+
+// Protected routes
+app.use("/api/payment", verifyToken, paymentRoutes);
+app.use("/api/orders", verifyToken, orderRoutes);
+app.use("/api/ratings", verifyToken, ratingRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { getToken, setToken, removeToken, getUserData, setUserData, removeUserData, clearAuth } from '../utils/auth';
 
 const AuthContext = createContext();
 
@@ -8,23 +9,18 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check localStorage for user data
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('userData');
+    const token = getToken();
+    const userData = getUserData();
     
     if (token && userData) {
       try {
-        const parsedUserData = JSON.parse(userData);
         setUser({
-          id: parsedUserData.id,
-          name: parsedUserData.name,
-          email: parsedUserData.email,
-          role: parsedUserData.role,
-          token: token
+          ...userData,
+          token
         });
       } catch (error) {
         console.error('Error parsing user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('userData');
+        clearAuth();
       }
     }
     
@@ -32,33 +28,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (responseData) => {
-    console.log('Login function called with:', responseData); // Debug log
+    console.log('Login function called with:', responseData);
 
-    // Backend'den gelen veriyi doğru formatta hazırla
     const userToStore = {
       id: responseData.user.id,
       name: responseData.user.name,
       email: responseData.user.email,
-      role: responseData.user.role,
-      token: responseData.token
+      role: responseData.user.role
     };
 
-    console.log('Formatted user data:', userToStore); // Debug log
+    // Update state
+    setUser({
+      ...userToStore,
+      token: responseData.token
+    });
 
-    // State'i güncelle
-    setUser(userToStore);
-
-    // LocalStorage'a kaydet
-    localStorage.setItem('token', responseData.token);
-    localStorage.setItem('userData', JSON.stringify(userToStore));
+    // Store in localStorage
+    setToken(responseData.token);
+    setUserData(userToStore);
 
     console.log('Login successful, user data stored:', userToStore);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
+    clearAuth();
   };
 
   const value = {

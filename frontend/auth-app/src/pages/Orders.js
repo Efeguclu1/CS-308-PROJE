@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Alert, Button, Spinner, Badge } from 'react-
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { getToken } from '../utils/auth';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
@@ -13,40 +14,31 @@ const Orders = () => {
   const [retryCount, setRetryCount] = useState(0);
 
   const fetchOrders = async () => {
-    if (!user || !user.id) {
-      console.log('No user ID found');
-      return;
-    }
+    if (!user || !user.id) return;
 
     setLoading(true);
     setError('');
     console.log('Fetching orders for user ID:', user.id);
-    console.log('User object:', user);
     
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/orders/user/${user.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('Orders API Response:', response);
-      console.log('Orders data:', response.data);
+      // Token will be automatically added by axios interceptor
+      const response = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
+      console.log('Orders response:', response.data);
       
+      // Store the response as array or empty array
       setOrders(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching orders:', err);
-      console.error('Full error object:', JSON.stringify(err, null, 2));
       
       if (err.response) {
         console.error('Error response:', err.response.data);
         console.error('Status code:', err.response.status);
         
-        if (err.response.status === 500) {
+        if (err.response.status === 401) {
+          setError('Authentication error. Please login again.');
+          navigate('/login', { state: { from: '/orders' } });
+        } else if (err.response.status === 500) {
           setError(`Server error: ${err.response.data.details || 'Internal server error'}`);
         } else {
           setError(`Error: ${err.response.data.error || 'Failed to load orders'}`);
@@ -72,8 +64,17 @@ const Orders = () => {
       return;
     }
 
+    // Check if token exists
+    const token = getToken();
+    if (!token) {
+      console.log('No token found, redirecting to login');
+      setError('Please login to view your orders');
+      navigate('/login', { state: { from: '/orders' } });
+      return;
+    }
+
     fetchOrders();
-  }, [user, authLoading, retryCount]); // retryCount ekledik
+  }, [user, authLoading, retryCount, navigate]);
 
   const handleGoToProducts = () => {
     navigate('/products');

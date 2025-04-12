@@ -60,7 +60,7 @@ const AddReview = ({ productId, onReviewAdded }) => {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/ratings/submit', {
+      const response = await axios.post('http://localhost:5001/api/ratings/submit', {
         userId: user.id,
         productId,
         rating,

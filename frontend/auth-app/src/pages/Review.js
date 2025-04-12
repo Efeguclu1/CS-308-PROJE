@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { getToken, getUserData } from '../utils/auth';
 import axios from 'axios';
 
 const Review = () => {
@@ -14,16 +15,14 @@ const Review = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Debug için loglar
+    // Debug logs
     console.log('Auth Loading:', authLoading);
     console.log('User Object:', user);
-    console.log('LocalStorage userData:', localStorage.getItem('userData'));
-    console.log('LocalStorage token:', localStorage.getItem('token'));
-
-    // Auth yüklenene kadar bekle
+    
+    // Wait for auth to load
     if (authLoading) return;
 
-    // Kullanıcı giriş yapmamışsa login sayfasına yönlendir
+    // Redirect to login if user is not authenticated
     if (!user || !user.id) {
       console.log('User not found, redirecting to login');
       navigate('/login', { state: { from: '/checkout/review' } });
@@ -38,19 +37,27 @@ const Review = () => {
   }, [user, authLoading, navigate]);
 
   const handlePlaceOrder = async () => {
-    // Debug için loglar
     console.log('Placing order with user:', user);
     console.log('Cart items:', cartItems);
 
-    // Auth yüklenene kadar bekle
+    // Wait for auth to load
     if (authLoading) {
       console.log('Auth still loading...');
       return;
     }
 
-    // Kullanıcı kontrolü
+    // Check user authentication
     if (!user || !user.id) {
       console.log('No user found when placing order');
+      setError('Please login to place an order');
+      navigate('/login', { state: { from: '/checkout/review' } });
+      return;
+    }
+
+    // Verify token exists
+    const token = getToken();
+    if (!token) {
+      console.log('No token found, redirecting to login');
       setError('Please login to place an order');
       navigate('/login', { state: { from: '/checkout/review' } });
       return;
@@ -65,7 +72,7 @@ const Review = () => {
         throw new Error('Payment information not found');
       }
 
-      // Kart numarasından boşlukları temizle
+      // Clean card number
       const cleanCardNumber = storedPaymentInfo.cardNumber.replace(/\s/g, '');
 
       const orderData = {
@@ -88,7 +95,8 @@ const Review = () => {
         cardNumber: '****' + cleanCardNumber.slice(-4)
       });
 
-      const response = await axios.post('http://localhost:5000/api/payment/process', orderData);
+      // Token will be automatically added by axios interceptor
+      const response = await axios.post('http://localhost:5001/api/payment/process', orderData);
 
       console.log('Order response:', response.data);
 

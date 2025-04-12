@@ -2,12 +2,21 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
+// Log all requests to this router
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Order route accessed: ${req.method} ${req.url}`);
+  console.log('User from token:', req.user);
+  console.log('Request headers:', req.headers);
+  next();
+});
+
 // Kullanıcının siparişlerini getir
 router.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
   console.log('Fetching orders for user ID:', userId);
   console.log('Request headers:', req.headers);
   console.log('Request params:', req.params);
+  console.log('Auth user from token:', req.user);
   
   try {
     // Veritabanı bağlantısını kontrol et
@@ -26,6 +35,7 @@ router.get('/user/:userId', async (req, res) => {
     }
 
     // Kullanıcının siparişlerini getir
+    console.log('Executing query to get orders for user:', userId);
     const [orders] = await db.promise().query(
       `SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
@@ -44,6 +54,7 @@ router.get('/user/:userId', async (req, res) => {
     
     for (const order of orders) {
       try {
+        console.log(`Fetching items for order ${order.id}`);
         const [items] = await db.promise().query(
           `SELECT oi.*, p.name as product_name 
            FROM order_items oi 
