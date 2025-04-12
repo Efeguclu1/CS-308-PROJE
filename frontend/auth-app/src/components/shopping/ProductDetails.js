@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import ProductReviews from '../products/ProductReviews';
+import AddReview from '../products/AddReview';
 import axios from 'axios';
 import './ProductDetails.scss';
 
@@ -11,20 +13,19 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshReviews, setRefreshReviews] = useState(0);
   const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching product details for ID: ${id}`);
         const response = await axios.get(`http://localhost:5001/api/products/${id}`);
-        console.log('Product data received:', response.data);
         setProduct(response.data);
         setError(null);
       } catch (err) {
-        console.error('Error fetching product details:', err);
         setError('Error fetching product details. Please try again later.');
+        console.error('Error fetching product details:', err);
       } finally {
         setLoading(false);
       }
@@ -34,10 +35,13 @@ const ProductDetails = () => {
   }, [id]);
 
   const handleAddToCart = () => {
-    if (product) {
-      addToCart(product);
-      alert('Product added to cart!');
-    }
+    addToCart(product);
+    // Show some kind of notification or feedback here
+  };
+
+  const handleReviewAdded = () => {
+    // Trigger a refresh of the reviews
+    setRefreshReviews(prev => prev + 1);
   };
 
   if (loading) {
@@ -53,7 +57,7 @@ const ProductDetails = () => {
   if (error) {
     return (
       <Container className="my-5">
-        <Alert variant="danger">{error}</Alert>
+        <div className="alert alert-danger">{error}</div>
       </Container>
     );
   }
@@ -61,40 +65,58 @@ const ProductDetails = () => {
   if (!product) {
     return (
       <Container className="my-5">
-        <Alert variant="info">Product not found.</Alert>
+        <div className="alert alert-info">Product not found.</div>
       </Container>
     );
   }
 
   return (
-    <Container className="my-5">
+    <Container className="my-5 product-details-container">
       <Button 
         variant="outline-secondary" 
-        className="mb-4"
+        className="mb-4 back-button"
         onClick={() => navigate('/products')}
       >
         &larr; Back to Products
       </Button>
 
-      <Card className="mb-4">
+      <Card className="product-detail-card mb-4">
         <Card.Body>
           <Row>
-            <Col md={6}>
-              <h1 className="mb-3">{product.name}</h1>
-              <Badge bg="primary" className="mb-3 p-2 fs-5">${product.price}</Badge>
-              <p className="fs-5 mb-4">{product.description}</p>
+            <Col md={6} className="product-info">
+              <h1 className="product-title">{product.name}</h1>
               
-              <div className="mb-4">
-                <p><strong>Model:</strong> {product.model}</p>
-                <p><strong>Serial Number:</strong> {product.serial_number}</p>
-                <p><strong>Warranty:</strong> {product.warranty_months} months</p>
-                <p><strong>Stock:</strong> {product.stock}</p>
+              <div className="product-price-stock">
+                <Badge bg="primary" className="price-badge">${product.price}</Badge>
+                <Badge bg={product.stock > 0 ? "success" : "danger"} className="stock-badge">
+                  {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                </Badge>
+                {product.stock <= 5 && product.stock > 0 && (
+                  <Badge bg="warning" text="dark" className="low-stock-badge">Only {product.stock} left</Badge>
+                )}
               </div>
+              
+              <p className="product-description">{product.description}</p>
+              
+              <ListGroup variant="flush" className="product-specs">
+                <ListGroup.Item>
+                  <strong>Model:</strong> {product.model}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Serial Number:</strong> {product.serial_number}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Warranty:</strong> {product.warranty_months} months
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Distributor:</strong> {product.distributor_info}
+                </ListGroup.Item>
+              </ListGroup>
               
               <Button 
                 variant="primary" 
                 size="lg" 
-                className="w-100"
+                className="add-to-cart-btn mt-4"
                 onClick={handleAddToCart}
                 disabled={product.stock <= 0}
               >
@@ -102,21 +124,52 @@ const ProductDetails = () => {
               </Button>
             </Col>
             
-            <Col md={6} className="text-center">
-              <div style={{ 
-                width: '100%', 
-                height: '300px', 
-                background: '#f5f5f5', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <span className="text-muted">Product Image</span>
+            <Col md={6} className="product-image-section">
+              <div className="product-placeholder-image">
+                <div className="placeholder-text">Product Image</div>
               </div>
             </Col>
           </Row>
         </Card.Body>
       </Card>
+
+      <Tabs defaultActiveKey="reviews" id="product-tabs" className="mb-3">
+        <Tab eventKey="reviews" title="Reviews">
+          <ProductReviews 
+            productId={id} 
+            key={`reviews-${refreshReviews}`}  
+          />
+          <AddReview 
+            productId={id} 
+            onReviewAdded={handleReviewAdded} 
+          />
+        </Tab>
+        <Tab eventKey="specifications" title="Specifications">
+          <Card>
+            <Card.Body>
+              <h3>Product Specifications</h3>
+              <ListGroup variant="flush">
+                <ListGroup.Item>
+                  <strong>Model:</strong> {product.model}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Warranty:</strong> {product.warranty_months} months
+                </ListGroup.Item>
+                {product.serial_number && (
+                  <ListGroup.Item>
+                    <strong>Serial Number:</strong> {product.serial_number}
+                  </ListGroup.Item>
+                )}
+                {product.distributor_info && (
+                  <ListGroup.Item>
+                    <strong>Distributor Information:</strong> {product.distributor_info}
+                  </ListGroup.Item>
+                )}
+              </ListGroup>
+            </Card.Body>
+          </Card>
+        </Tab>
+      </Tabs>
     </Container>
   );
 };
