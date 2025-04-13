@@ -90,29 +90,49 @@ const Orders = () => {
     setDownloadingInvoice(prev => ({ ...prev, [orderId]: true }));
     
     try {
-      // Make a request to download the invoice
-      const response = await axios({
-        url: `http://localhost:5001/api/invoices/${orderId}`,
-        method: 'GET',
-        responseType: 'blob', // Important for handling binary files
-      });
+      console.log('Getting token...');
+      const token = getToken();
+      console.log('Token available:', !!token);
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Generate the full URL
+      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
+      console.log('Invoice URL:', invoiceUrl);
       
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Open the PDF in a new window/tab
+      window.open(invoiceUrl, '_blank');
       
-      // Create a temporary link element and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `invoice-order-${orderId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // For better UX, also try the download approach as a fallback
+      try {
+        // Make a request to download the invoice
+        const response = await axios({
+          url: invoiceUrl,
+          method: 'GET',
+          responseType: 'blob', // Important for handling binary files
+        });
+        
+        // Create a URL for the blob
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice-order-${orderId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (downloadErr) {
+        console.log('Fallback download failed, but PDF should be opened in new tab:', downloadErr);
+      }
     } catch (err) {
-      console.error('Error downloading invoice:', err);
-      alert('Failed to download invoice. Please try again later.');
+      console.error('Error accessing invoice:', err);
+      alert('Failed to access invoice. Please try again later.');
     } finally {
       setDownloadingInvoice(prev => ({ ...prev, [orderId]: false }));
     }

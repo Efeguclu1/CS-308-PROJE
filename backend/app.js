@@ -10,7 +10,6 @@ app.use(express.json());
 // Request logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
   next();
 });
 
@@ -24,20 +23,12 @@ const invoiceRoutes = require("./routes/invoiceRoutes");
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
-  console.log('Orders API called:', {
-    method: req.method,
-    url: req.url,
-    params: req.params,
-    query: req.query,
-    body: req.body,
-    headers: req.headers
-  });
+  console.log('Orders API called:', { method: req.method, url: req.url });
   next();
 });
 
 // Test endpoint for token verification
 app.get('/api/test-auth', verifyToken, (req, res) => {
-  console.log('Test auth endpoint called, verified user:', req.user);
   res.json({ 
     success: true, 
     message: 'Token is valid', 
@@ -68,7 +59,7 @@ app.use((err, req, res, next) => {
 });
 
 // Port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);
