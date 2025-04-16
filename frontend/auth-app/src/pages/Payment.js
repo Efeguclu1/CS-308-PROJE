@@ -17,7 +17,8 @@ const Payment = () => {
     expirationMonth: '',
     expirationYear: '',
     cvv: '',
-    saveCard: false
+    saveCard: false,
+    invoiceEmail: user?.email || ''
   });
   
   const [validated, setValidated] = useState(false);
@@ -71,13 +72,22 @@ const Payment = () => {
         throw new Error('CVV must be 3 digits');
       }
 
+      // Get shipping address from session storage
+      const shippingAddressData = sessionStorage.getItem('shippingAddress');
+      const shippingAddress = shippingAddressData ? JSON.parse(shippingAddressData) : null;
+
+      if (!shippingAddress) {
+        throw new Error('Shipping address not found. Please go back to the shipping step.');
+      }
+
       // Store payment info in sessionStorage for review
       sessionStorage.setItem('paymentInfo', JSON.stringify({
         cardNumber: cleanCardNumber,
         cardName: paymentInfo.cardName,
         expirationMonth: paymentInfo.expirationMonth,
         expirationYear: paymentInfo.expirationYear,
-        cvv: paymentInfo.cvv
+        cvv: paymentInfo.cvv,
+        invoiceEmail: paymentInfo.invoiceEmail
       }));
       
       // Navigate to review page
@@ -293,6 +303,27 @@ const Payment = () => {
                         label="Save card information"
                       />
                     </div>
+                  </Form.Group>
+                  
+                  <Form.Group className="mb-3">
+                    <Form.Label>Invoice Email</Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        type="email"
+                        name="invoiceEmail"
+                        value={paymentInfo.invoiceEmail}
+                        onChange={handleInputChange}
+                        className="checkout-input"
+                        placeholder="Email address for invoice"
+                        required
+                      />
+                      <InputGroup.Text>
+                        <i className="bi bi-envelope"></i>
+                      </InputGroup.Text>
+                    </InputGroup>
+                    <Form.Text className="text-muted">
+                      Your invoice will be sent to this email address
+                    </Form.Text>
                   </Form.Group>
                   
                   <div className="payment-security-info mb-4">

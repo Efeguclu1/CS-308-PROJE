@@ -11,6 +11,7 @@ const Review = () => {
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [shippingAddress, setShippingAddress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,6 +34,12 @@ const Review = () => {
     const storedPaymentInfo = sessionStorage.getItem('paymentInfo');
     if (storedPaymentInfo) {
       setPaymentInfo(JSON.parse(storedPaymentInfo));
+    }
+    
+    // Get shipping address from sessionStorage
+    const storedShippingAddress = sessionStorage.getItem('shippingAddress');
+    if (storedShippingAddress) {
+      setShippingAddress(JSON.parse(storedShippingAddress));
     }
   }, [user, authLoading, navigate]);
 
@@ -75,6 +82,12 @@ const Review = () => {
       // Clean card number
       const cleanCardNumber = storedPaymentInfo.cardNumber.replace(/\s/g, '');
 
+      // Get shipping address
+      const storedShippingAddress = JSON.parse(sessionStorage.getItem('shippingAddress'));
+      if (!storedShippingAddress) {
+        throw new Error('Shipping address not found');
+      }
+
       const orderData = {
         cardNumber: cleanCardNumber,
         cardName: storedPaymentInfo.cardName,
@@ -82,6 +95,8 @@ const Review = () => {
         expirationYear: storedPaymentInfo.expirationYear,
         cvv: storedPaymentInfo.cvv,
         userId: user.id,
+        checkoutEmail: storedPaymentInfo.invoiceEmail,
+        shippingAddress: storedShippingAddress.formattedAddress,
         items: cartItems.map(item => ({
           productId: item.id,
           quantity: item.quantity,
@@ -153,9 +168,23 @@ const Review = () => {
           <Card className="mb-4">
             <Card.Body>
               <h4>Payment Details</h4>
-              <p>Card ending in: **** **** **** {paymentInfo.cardNumber}</p>
+              <p>Card ending in: **** **** **** {paymentInfo.cardNumber.slice(-4)}</p>
               <p>Name on card: {paymentInfo.cardName}</p>
               <p>Expires: {paymentInfo.expirationMonth}/{paymentInfo.expirationYear}</p>
+              <p>Invoice email: {paymentInfo.invoiceEmail}</p>
+            </Card.Body>
+          </Card>
+          
+          <Card className="mb-4">
+            <Card.Body>
+              <h4>Shipping Address</h4>
+              {shippingAddress && (
+                <>
+                  <p>{shippingAddress.firstName} {shippingAddress.lastName}</p>
+                  <p>{shippingAddress.formattedAddress}</p>
+                  <p>Phone: {shippingAddress.phoneNumber}</p>
+                </>
+              )}
             </Card.Body>
           </Card>
 

@@ -39,6 +39,15 @@ const Shipping = () => {
       return;
     }
     
+    // Format complete address for invoice
+    const formattedAddress = `${shippingAddress.firstName} ${shippingAddress.lastName}, ${shippingAddress.address}${shippingAddress.apartment ? ', ' + shippingAddress.apartment : ''}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}`;
+    
+    // Save shipping address in session storage
+    sessionStorage.setItem('shippingAddress', JSON.stringify({
+      ...shippingAddress,
+      formattedAddress
+    }));
+    
     // Save shipping address and continue to payment
     console.log('Shipping details:', shippingAddress);
     navigate('/checkout/payment');
