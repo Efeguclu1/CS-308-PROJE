@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 
 dotenv.config();
 
-const app = express();
+const app = require('./app'); // Import the app from app.js
 
 // Token verification middleware
 const verifyToken = (req, res, next) => {
@@ -108,6 +108,8 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
-});
+// Remove this listen call, as app.js handles it
+// app.listen(PORT, () => {
+//   // Use the console log from app.js which is now starting the server
+//   // console.log(`✅ Server is running on port ${PORT}`); 
+// });

@@ -20,6 +20,7 @@ const productRoutes = require("./routes/productRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const ratingRoutes = require("./routes/ratingRoutes");
+const invoiceRoutes = require("./routes/invoiceRoutes");
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
@@ -52,6 +53,9 @@ app.use("/api/products", productRoutes);
 app.use("/api/payment", verifyToken, paymentRoutes);
 app.use("/api/orders", verifyToken, orderRoutes);
 app.use("/api/ratings", verifyToken, ratingRoutes);
+
+// Restore the app.use for invoiceRoutes with verifyToken
+app.use("/api/invoices", verifyToken, invoiceRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

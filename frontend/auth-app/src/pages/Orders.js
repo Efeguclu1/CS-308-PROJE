@@ -4,12 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getToken } from '../utils/auth';
+import { FaFileInvoice } from 'react-icons/fa';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloadingInvoice, setDownloadingInvoice] = useState({});
   const navigate = useNavigate();
   const [retryCount, setRetryCount] = useState(0);
 
@@ -82,6 +84,45 @@ const Orders = () => {
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
+  };
+
+  const handleDownloadInvoice = async (orderId) => {
+    setDownloadingInvoice(prev => ({ ...prev, [orderId]: true }));
+    
+    try {
+      console.log('Getting token...');
+      const token = getToken();
+      console.log('Token available:', !!token);
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
+      console.log('Invoice URL:', invoiceUrl);
+      
+      // Use axios request to handle authentication
+      const response = await axios({
+        url: invoiceUrl,
+        method: 'GET',
+        responseType: 'blob', 
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-order-${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error accessing invoice:', err);
+      alert('Failed to access invoice. Please try again later.');
+    } finally {
+      setDownloadingInvoice(prev => ({ ...prev, [orderId]: false }));
+    }
   };
 
   if (authLoading) {
@@ -186,6 +227,33 @@ const Orders = () => {
                           <div className="mt-4">
                             <h6 className="mb-2">Shipping Address:</h6>
                             <p className="text-muted mb-0">{order.delivery_address || 'Not specified'}</p>
+                          </div>
+                          <div className="mt-3">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(order.id)}
+                              disabled={downloadingInvoice[order.id]}
+                              className="mt-2"
+                            >
+                              {downloadingInvoice[order.id] ? (
+                                <>
+                                  <Spinner 
+                                    as="span" 
+                                    animation="border" 
+                                    size="sm" 
+                                    role="status" 
+                                    aria-hidden="true" 
+                                    className="me-1"
+                                  />
+                                  Downloading...
+                                </>
+                              ) : (
+                                <>
+                                  <FaFileInvoice className="me-1" /> Download Invoice
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       </Col>
