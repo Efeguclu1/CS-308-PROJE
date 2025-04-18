@@ -1,0 +1,33 @@
+# Database Configuration
+DB_PORT=5001
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=password
+DB_NAME=online_store
+
+# Server Configuration
+PORT=5001
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+
+# Other Configuration
+NODE_ENV=development
+
+# Email Configuration - Using Gmail
+USE_TEST_EMAIL=false
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=ffg.kiraz@gmail.com
+EMAIL_PASSWORD=ekzfzrdpqtkriusq
+EMAIL_FROM="E-Commerce Store <ffg.kiraz@gmail.com>"
+
+# Ethereal Test Email Configuration (uncomment to use for testing)
+# USE_TEST_EMAIL=true
+# EMAIL_HOST=smtp.ethereal.email
+# EMAIL_PORT=587
+# EMAIL_SECURE=false
+# EMAIL_USER=ltu247cpehg3cnfv@ethereal.email
+# EMAIL_PASSWORD=94znuY9FFG96gtP8qu
+# EMAIL_FROM="E-Commerce Store <ltu247cpehg3cnfv@ethereal.email>" 
