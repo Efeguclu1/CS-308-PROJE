@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
+const verifyToken = require("../middleware/auth");
 
 // Kullanıcı Kaydı (Register)
 router.post("/register", async (req, res) => {
@@ -81,6 +82,58 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// Update user profile
+router.put('/profile', verifyToken, async (req, res) => {
+  try {
+    const { name, email, address, currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Get user from database
+    const [users] = await db.promise().query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = users[0];
+
+    // If changing password, verify current password
+    if (newPassword) {
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await db.promise().query(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, userId]
+      );
+    }
+
+    // Update user profile
+    await db.promise().query(
+      'UPDATE users SET name = ?, email = ?, address = ? WHERE id = ?',
+      [name, email, address, userId]
+    );
+
+    // Get updated user
+    const [updatedUsers] = await db.promise().query(
+      'SELECT id, name, email, address, role FROM users WHERE id = ?', 
+      [userId]
+    );
+    const updatedUser = updatedUsers[0];
+
+    res.json({ 
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

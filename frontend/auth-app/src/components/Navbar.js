@@ -18,7 +18,7 @@ const NavigationBar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products/categories/all');
+        const response = await axios.get('http://localhost:5000/api/products/categories/all');
         setCategories(response.data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -141,6 +141,9 @@ const NavigationBar = () => {
                     <span className="cart-badge">{cartCount}</span>
                   )}
                 </div>
+              </Nav.Link>
+              <Nav.Link as={Link} to="/profile">
+                <i className="fas fa-user"></i> Profile
               </Nav.Link>
             </Nav>
           </Navbar.Collapse>

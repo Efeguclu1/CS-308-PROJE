@@ -111,7 +111,7 @@ const Review = () => {
       });
 
       // Token will be automatically added by axios interceptor
-      const response = await axios.post('http://localhost:5001/api/payment/process', orderData);
+      const response = await axios.post('http://localhost:5000/api/payment/process', orderData);
 
       console.log('Order response:', response.data);
 

@@ -46,7 +46,7 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/products/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               
               {/* Checkout flow */}
               <Route path="/checkout" element={<Checkout />} />
