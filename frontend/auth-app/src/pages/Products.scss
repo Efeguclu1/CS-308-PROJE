@@ -174,19 +174,6 @@
         cursor: not-allowed;
       }
     }
-    
-    .low-stock-badge {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: #dc3545;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      z-index: 1;
-    }
   }
 }
 
@@ -249,4 +236,38 @@
     height: auto;
     -webkit-line-clamp: 2;
   }
+}
+
+// Styling for the sort dropdown
+.dropdown-toggle {
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  &::after {
+    margin-left: 8px;
+  }
+}
+
+.dropdown-menu {
+  width: 100%;
+}
+
+.dropdown-item {
+  &:hover {
+    background-color: #f8f9fa;
+  }
+  
+  &:active, &.active {
+    background-color: #e9ecef;
+    color: #212529;
+  }
+}
+
+.low-stock-badge {
+  font-size: 0.85rem !important;
+  padding: 0.5rem 0.75rem !important;
+  display: flex !important;
+  align-items: center !important;
 } 
