@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Row, Col, Button, Badge, Form, Spinner } from 'react-bootstrap';
+import { Container, Card, Row, Col, Button, Badge, Form, Spinner, Dropdown } from 'react-bootstrap';
 import { useCart } from '../context/CartContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
 import './Products.scss';
 
@@ -12,6 +13,7 @@ const Products = () => {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(0); // 0 means all categories
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState('default'); // 'default', 'price-asc', 'price-desc'
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,7 +22,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('http://localhost:5001/api/products');
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -35,7 +37,7 @@ const Products = () => {
   const fetchProductsByCategory = async (categoryId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/products/category/${categoryId}`);
+      const response = await axios.get(`http://localhost:5001/api/products/category/${categoryId}`);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -55,7 +57,7 @@ const Products = () => {
     
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/products/search/${query}`);
+      const response = await axios.get(`http://localhost:5001/api/products/search/${query}`);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -69,11 +71,21 @@ const Products = () => {
   // Function to fetch categories
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products/categories/all');
+      const response = await axios.get('http://localhost:5001/api/products/categories/all');
       setCategories(response.data);
     } catch (err) {
       console.error('Error fetching categories:', err);
     }
+  };
+
+  // Sort products based on the selected option
+  const sortProducts = (products) => {
+    if (sortOption === 'price-asc') {
+      return [...products].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+    } else if (sortOption === 'price-desc') {
+      return [...products].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+    }
+    return products; // default: no sorting
   };
 
   useEffect(() => {
@@ -124,10 +136,18 @@ const Products = () => {
     navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
   };
 
+  // Handle sort change
+  const handleSortChange = (option) => {
+    setSortOption(option);
+  };
+
   // Navigate to product details
   const handleViewDetails = (productId) => {
     navigate(`/products/${productId}`);
   };
+
+  // Apply sorting to products
+  const sortedProducts = sortProducts(products);
 
   return (
     <Container className="my-4 products-container">
@@ -149,7 +169,7 @@ const Products = () => {
             </Form.Group>
           </Form>
         </Col>
-        <Col md={6}>
+        <Col md={3}>
           <Form.Select 
             value={selectedCategory} 
             onChange={handleCategoryChange}
@@ -162,6 +182,20 @@ const Products = () => {
             ))}
           </Form.Select>
         </Col>
+        <Col md={3}>
+          <Dropdown className="w-100">
+            <Dropdown.Toggle variant="outline-secondary" className="w-100">
+              {sortOption === 'default' && 'Sort By'}
+              {sortOption === 'price-asc' && 'Price: Low to High'}
+              {sortOption === 'price-desc' && 'Price: High to Low'}
+            </Dropdown.Toggle>
+            <Dropdown.Menu className="w-100">
+              <Dropdown.Item onClick={() => handleSortChange('default')}>Default</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange('price-asc')}>Price: Low to High</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange('price-desc')}>Price: High to Low</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </Col>
       </Row>
 
       {loading ? (
@@ -172,16 +206,13 @@ const Products = () => {
         </div>
       ) : error ? (
         <div className="alert alert-danger">{error}</div>
-      ) : products.length === 0 ? (
+      ) : sortedProducts.length === 0 ? (
         <div className="alert alert-info">No products found.</div>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
-          {products.map((product) => (
+          {sortedProducts.map((product) => (
             <Col key={product.id}>
               <Card className="h-100 shadow-sm product-card">
-                {product.stock <= 5 && (
-                  <div className="low-stock-badge">Low Stock</div>
-                )}
                 <Card.Body>
                   <Card.Title 
                     className="product-title-link"
@@ -196,9 +227,15 @@ const Products = () => {
                   </div>
                   <div className="d-flex justify-content-between align-items-center mt-3">
                     <Badge bg="primary" className="price-badge">${product.price}</Badge>
-                    <Badge bg={product.stock > 0 ? "secondary" : "danger"} className="stock-badge">
-                      {product.stock > 0 ? `Stock: ${product.stock}` : "Out of Stock"}
-                    </Badge>
+                    {product.stock <= 0 ? (
+                      <Badge bg="danger" className="stock-badge">Out of Stock</Badge>
+                    ) : product.stock <= 5 ? (
+                      <Badge bg="warning" text="dark" className="stock-badge low-stock-badge">
+                        <FaExclamationTriangle className="me-1" /> Only {product.stock} left
+                      </Badge>
+                    ) : (
+                      <Badge bg="secondary" className="stock-badge">Stock: {product.stock}</Badge>
+                    )}
                   </div>
                   <div className="d-flex gap-2 mt-3">
                     <Button 
