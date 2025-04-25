@@ -137,4 +137,44 @@ router.put('/profile', verifyToken, async (req, res) => {
   }
 });
 
+// Admin Registration (requires a special key)
+router.post("/admin/register", async (req, res) => {
+  const { name, email, password, address, adminKey } = req.body;
+
+  // Verify admin key (this should be a secure environment variable in production)
+  if (adminKey !== "admin-secret-123") {
+    return res.status(403).json({ error: "Invalid admin key" });
+  }
+
+  if (!name || !email || !password || !address) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    // Check if email already exists (case insensitive)
+    const [existingUsers] = await db.promise().query(
+      "SELECT * FROM users WHERE LOWER(email) = LOWER(?)", 
+      [email]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: "This email is already in use" });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Save with admin role
+    await db.promise().query(
+      "INSERT INTO users (name, email, password, address, role) VALUES (?, ?, ?, ?, ?)", 
+      [name, email, hashedPassword, address, "product_manager"]
+    );
+    
+    console.log(`Admin user registered with email: ${email}`);
+    res.json({ message: "Admin user successfully registered" });
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
 module.exports = router;

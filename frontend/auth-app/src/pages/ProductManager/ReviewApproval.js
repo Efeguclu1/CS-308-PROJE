@@ -1,112 +1,132 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Badge, Spinner, Alert, Card, Row, Col, Form } from 'react-bootstrap';
-import { FaStar, FaCheck, FaTimes, FaSearch } from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext';
+import { FaStar, FaRegStar, FaCheck, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import './ReviewApproval.scss';
 
 const ReviewApproval = () => {
   const { user } = useAuth();
-  const [pendingReviews, setPendingReviews] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState('');
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Check if user is a product manager
-  useEffect(() => {
-    if (user && user.role !== 'product_manager') {
-      setError('You do not have permission to access this page');
-    }
-  }, [user]);
-
-  // Fetch products for the dropdown
+  // Fetch products for filter dropdown
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await axios.get('http://localhost:5001/api/products');
         setProducts(response.data);
       } catch (err) {
         console.error('Error fetching products:', err);
+      } finally {
+        setLoadingProducts(false);
       }
     };
 
     fetchProducts();
   }, []);
 
-  // Fetch pending reviews for selected product
+  // Fetch reviews that need approval
+  const fetchReviews = async (productId = null) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let url;
+      if (productId) {
+        url = `http://localhost:5001/api/ratings/admin/product/${productId}`;
+      } else {
+        // Fetch all pending reviews if no product is selected
+        url = 'http://localhost:5001/api/ratings/admin/pending';
+      }
+      
+      const response = await axios.get(url);
+      
+      // Filter for unapproved comments only if we have a specific endpoint for all pending reviews
+      const reviewData = productId 
+        ? response.data.filter(review => review.comment && review.comment_approved === 0)
+        : response.data;
+        
+      setReviews(reviewData);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setError('Failed to load reviews. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPendingReviews = async () => {
-      if (!selectedProduct) {
-        setPendingReviews([]);
-        setLoading(false);
-        return;
-      }
+    // Initial loading of all pending reviews
+    fetchReviews();
+  }, []);
 
-      try {
-        setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/ratings/admin/product/${selectedProduct}`);
-        // Filter for reviews with comments that are not approved
-        const pending = response.data.filter(
-          review => review.comment && review.comment_approved === 0
-        );
-        setPendingReviews(pending);
-        setError('');
-      } catch (err) {
-        console.error('Error fetching pending reviews:', err);
-        setError('Failed to load pending reviews');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPendingReviews();
-  }, [selectedProduct]);
+  // When product filter changes
+  useEffect(() => {
+    if (selectedProductId) {
+      fetchReviews(selectedProductId);
+    } else {
+      fetchReviews();
+    }
+  }, [selectedProductId]);
 
   const handleApprove = async (reviewId) => {
     try {
-      await axios.put(`http://localhost:5000/api/ratings/approve/${reviewId}`);
+      await axios.put(`http://localhost:5001/api/ratings/approve/${reviewId}`);
       
-      // Update local state
-      setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));
-      setSuccessMessage('Review approved successfully');
+      // Remove the approved review from the list
+      setReviews(reviews.filter(review => review.id !== reviewId));
+      setSuccess('Review approved successfully');
       
       // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error approving review:', err);
       setError('Failed to approve review');
+      
+      // Clear error message after 3 seconds
+      setTimeout(() => setError(null), 3000);
     }
   };
 
   const handleReject = async (reviewId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/ratings/${reviewId}`);
+      await axios.delete(`http://localhost:5001/api/ratings/${reviewId}`);
       
-      // Update local state
-      setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));
-      setSuccessMessage('Review rejected successfully');
+      // Remove the rejected review from the list
+      setReviews(reviews.filter(review => review.id !== reviewId));
+      setSuccess('Review rejected successfully');
       
       // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error rejecting review:', err);
       setError('Failed to reject review');
+      
+      // Clear error message after 3 seconds
+      setTimeout(() => setError(null), 3000);
     }
   };
 
-  // Helper to render stars
   const renderStars = (rating) => {
-    return Array.from({ length: 5 }).map((_, index) => (
-      <FaStar 
-        key={index} 
-        className={index < Math.round(rating) ? 'star filled' : 'star'} 
-      />
-    ));
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        i <= rating ? (
+          <FaStar key={i} className="star filled" />
+        ) : (
+          <FaRegStar key={i} className="star" />
+        )
+      );
+    }
+    return stars;
   };
 
-  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -116,43 +136,36 @@ const ReviewApproval = () => {
     });
   };
 
-  if (user && user.role !== 'product_manager') {
+  // If user doesn't have product_manager role
+  if (user?.role !== 'product_manager') {
     return (
       <Container className="my-5">
         <Alert variant="danger">
-          You do not have permission to access this page. Only product managers can approve reviews.
+          You don't have permission to access this page. This page is only for product managers.
         </Alert>
       </Container>
     );
   }
 
   return (
-    <Container className="my-5 review-approval-container">
-      <h2 className="mb-4">Review Approval</h2>
-
-      {error && (
-        <Alert variant="danger" onClose={() => setError('')} dismissible>
-          {error}
-        </Alert>
-      )}
-
-      {successMessage && (
-        <Alert variant="success" onClose={() => setSuccessMessage('')} dismissible>
-          {successMessage}
-        </Alert>
-      )}
-
+    <Container className="my-5 review-approval-page">
+      <h2 className="mb-4">Review Approval Management</h2>
+      
+      {success && <Alert variant="success">{success}</Alert>}
+      {error && <Alert variant="danger">{error}</Alert>}
+      
       <Card className="mb-4">
         <Card.Body>
           <Row>
-            <Col>
+            <Col md={6}>
               <Form.Group>
-                <Form.Label><strong>Select Product</strong></Form.Label>
-                <Form.Select
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
+                <Form.Label>Filter by Product</Form.Label>
+                <Form.Select 
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  disabled={loadingProducts}
                 >
-                  <option value="">-- Select a product --</option>
+                  <option value="">All Products</option>
                   {products.map(product => (
                     <option key={product.id} value={product.id}>
                       {product.name}
@@ -164,68 +177,69 @@ const ReviewApproval = () => {
           </Row>
         </Card.Body>
       </Card>
-
+      
       {loading ? (
         <div className="text-center my-5">
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading reviews...</span>
           </Spinner>
         </div>
-      ) : pendingReviews.length === 0 ? (
+      ) : reviews.length === 0 ? (
         <Alert variant="info">
-          {selectedProduct 
-            ? 'No pending reviews to approve for this product' 
-            : 'Please select a product to view pending reviews'}
+          No reviews pending approval.
         </Alert>
       ) : (
-        <div className="table-responsive">
-          <Table striped bordered hover className="review-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Rating</th>
-                <th>Comment</th>
-                <th>Date</th>
-                <th>Actions</th>
+        <Table responsive className="review-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Product</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reviews.map(review => (
+              <tr key={review.id}>
+                <td>{review.id}</td>
+                <td>{review.user_name}</td>
+                <td>
+                  {products.find(p => p.id === review.product_id)?.name || `Product #${review.product_id}`}
+                </td>
+                <td>
+                  <div className="rating-stars">
+                    {renderStars(review.rating)}
+                  </div>
+                </td>
+                <td className="review-comment-cell">{review.comment}</td>
+                <td>{formatDate(review.created_at)}</td>
+                <td>
+                  <div className="action-buttons">
+                    <Button 
+                      variant="success" 
+                      size="sm"
+                      onClick={() => handleApprove(review.id)}
+                      title="Approve Review"
+                    >
+                      <FaCheck />
+                    </Button>
+                    <Button 
+                      variant="danger" 
+                      size="sm"
+                      onClick={() => handleReject(review.id)}
+                      title="Reject Review"
+                    >
+                      <FaTimes />
+                    </Button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pendingReviews.map(review => (
-                <tr key={review.id}>
-                  <td>{review.user_name}</td>
-                  <td>
-                    <div className="rating">
-                      {renderStars(review.rating)}
-                      <Badge bg="primary" className="ms-2">
-                        {review.rating.toFixed(1)}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="review-comment">{review.comment}</td>
-                  <td>{formatDate(review.created_at)}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <Button 
-                        variant="success" 
-                        size="sm"
-                        onClick={() => handleApprove(review.id)}
-                      >
-                        <FaCheck /> Approve
-                      </Button>
-                      <Button 
-                        variant="danger" 
-                        size="sm"
-                        onClick={() => handleReject(review.id)}
-                      >
-                        <FaTimes /> Reject
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
       )}
     </Container>
   );

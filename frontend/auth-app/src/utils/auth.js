@@ -76,10 +76,27 @@ export const setupAxiosInterceptors = (axios) => {
       console.error('Response interceptor caught error:', error.message);
       
       if (error.response?.status === 401) {
-        // Token expired or invalid
-        console.log('401 Unauthorized response detected, clearing auth data');
-        clearAuth();
-        window.location.href = '/login';
+        // Get the request URL to determine if it's a protected route
+        const requestUrl = error.config?.url || '';
+        
+        // List of endpoints that should NOT trigger a redirect
+        const publicEndpoints = [
+          '/products', 
+          '/api/products',
+          '/api/ratings/product'
+        ];
+        
+        // Check if the URL is a public endpoint
+        const isPublicEndpoint = publicEndpoints.some(endpoint => requestUrl.includes(endpoint));
+        
+        // Only redirect for protected endpoints
+        if (!isPublicEndpoint) {
+          console.log('401 Unauthorized response detected on protected route, clearing auth data');
+          clearAuth();
+          window.location.href = '/login';
+        } else {
+          console.log('401 on public endpoint, not redirecting:', requestUrl);
+        }
       }
       return Promise.reject(error);
     }

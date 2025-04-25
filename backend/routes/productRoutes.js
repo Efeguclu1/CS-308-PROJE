@@ -4,10 +4,23 @@ const db = require("../config/db");
 
 // Get all products
 router.get("/", (req, res) => {
-  db.query("SELECT * FROM products WHERE visible = 1", (err, results) => {
+  const { sort } = req.query;
+  
+  console.log('Sorting parameter received:', sort);
+  let query = "SELECT * FROM products WHERE visible = 1";
+  
+  if (sort === 'popularity') {
+    query += " ORDER BY popularity DESC";
+    console.log('Applying popularity sorting');
+  }
+  
+  console.log('Final query:', query);
+  db.query(query, (err, results) => {
     if (err) {
+      console.error('Query error:', err);
       return res.status(500).json({ error: "Error retrieving products." });
     }
+    console.log(`Returned ${results.length} products`);
     res.json(results);
   });
 });
@@ -29,7 +42,15 @@ router.get("/:id", (req, res) => {
 // Get products by category
 router.get("/category/:categoryId", (req, res) => {
   const categoryId = req.params.categoryId;
-  db.query("SELECT * FROM products WHERE category_id = ? AND visible = 1", [categoryId], (err, results) => {
+  const { sort } = req.query;
+  
+  let query = "SELECT * FROM products WHERE category_id = ? AND visible = 1";
+  
+  if (sort === 'popularity') {
+    query += " ORDER BY popularity DESC";
+  }
+  
+  db.query(query, [categoryId], (err, results) => {
     if (err) {
       return res.status(500).json({ error: "Error retrieving products by category." });
     }
@@ -50,8 +71,16 @@ router.get("/categories/all", (req, res) => {
 // Search products
 router.get("/search/:query", (req, res) => {
   const searchQuery = `%${req.params.query}%`;
+  const { sort } = req.query;
+  
+  let query = "SELECT * FROM products WHERE (name LIKE ? OR description LIKE ? OR model LIKE ?) AND visible = 1";
+  
+  if (sort === 'popularity') {
+    query += " ORDER BY popularity DESC";
+  }
+  
   db.query(
-    "SELECT * FROM products WHERE (name LIKE ? OR description LIKE ? OR model LIKE ?) AND visible = 1",
+    query,
     [searchQuery, searchQuery, searchQuery],
     (err, results) => {
       if (err) {

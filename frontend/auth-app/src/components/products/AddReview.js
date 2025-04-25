@@ -60,7 +60,7 @@ const AddReview = ({ productId, onReviewAdded }) => {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/ratings/submit', {
+      const response = await axios.post('http://localhost:5001/api/ratings/submit', {
         userId: user.id,
         productId,
         rating,
@@ -146,9 +146,6 @@ const AddReview = ({ productId, onReviewAdded }) => {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
-            <Form.Text className="text-muted">
-              Comments need approval from our product managers before they become visible to other users.
-            </Form.Text>
           </Form.Group>
           
           <Button 

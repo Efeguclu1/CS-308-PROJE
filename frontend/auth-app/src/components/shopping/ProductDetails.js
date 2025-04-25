@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab } from 'react-bootstrap';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab, Alert } from 'react-bootstrap';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import ProductReviews from '../products/ProductReviews';
 import AddReview from '../products/AddReview';
 import axios from 'axios';
@@ -15,12 +16,13 @@ const ProductDetails = () => {
   const [error, setError] = useState(null);
   const [refreshReviews, setRefreshReviews] = useState(0);
   const { addToCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+        const response = await axios.get(`http://localhost:5001/api/products/${id}`);
         setProduct(response.data);
         setError(null);
       } catch (err) {
@@ -139,10 +141,21 @@ const ProductDetails = () => {
             productId={id} 
             key={`reviews-${refreshReviews}`}  
           />
-          <AddReview 
-            productId={id} 
-            onReviewAdded={handleReviewAdded} 
-          />
+          
+          {isAuthenticated ? (
+            <AddReview 
+              productId={id} 
+              onReviewAdded={handleReviewAdded} 
+            />
+          ) : (
+            <Card className="mt-4 mb-4">
+              <Card.Body>
+                <Alert variant="info">
+                  You can view all product reviews without logging in. <Link to={`/login?returnTo=/products/${id}`}>Log in</Link> to leave your own review.
+                </Alert>
+              </Card.Body>
+            </Card>
+          )}
         </Tab>
         <Tab eventKey="specifications" title="Specifications">
           <Card>

@@ -24,7 +24,7 @@ const Orders = () => {
     
     try {
       // Token will be automatically added by axios interceptor
-      const response = await axios.get(`http://localhost:5000/api/orders/user/${user.id}`);
+      const response = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
       console.log('Orders response:', response.data);
       
       // Store the response as array or empty array
@@ -98,7 +98,7 @@ const Orders = () => {
         throw new Error('No authentication token found');
       }
 
-      const invoiceUrl = `http://localhost:5000/api/invoices/${orderId}`;
+      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
       console.log('Invoice URL:', invoiceUrl);
       
       // Use axios request to handle authentication

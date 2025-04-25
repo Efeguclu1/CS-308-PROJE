@@ -37,7 +37,7 @@ const OrderSuccess = () => {
       }
       
       // Generate the full URL
-      const invoiceUrl = `http://localhost:5000/api/invoices/${orderId}`;
+      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
       console.log('Invoice URL:', invoiceUrl);
       
       // Open the PDF in a new window/tab - Requires token in header, so direct open won't work for protected route

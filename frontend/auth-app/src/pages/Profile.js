@@ -52,7 +52,7 @@ const Profile = () => {
         }
       }
 
-      const response = await axios.put('http://localhost:5000/api/auth/profile', {
+      const response = await axios.put('http://localhost:5001/api/auth/profile', {
         name: formData.name,
         email: formData.email,
         address: formData.address,

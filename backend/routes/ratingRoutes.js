@@ -60,6 +60,26 @@ router.get('/admin/product/:productId', async (req, res) => {
   }
 });
 
+// Get all pending reviews across all products (for product manager)
+router.get('/admin/pending', async (req, res) => {
+  try {
+    // Get all ratings with unapproved comments
+    const [pendingReviews] = await db.promise().query(
+      `SELECT r.*, u.name as user_name, p.name as product_name
+       FROM ratings r
+       JOIN users u ON r.user_id = u.id
+       JOIN products p ON r.product_id = p.id
+       WHERE r.comment IS NOT NULL AND r.comment_approved = 0
+       ORDER BY r.created_at DESC`
+    );
+    
+    res.json(pendingReviews);
+  } catch (error) {
+    console.error('Error fetching pending reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch pending reviews' });
+  }
+});
+
 // Submit a new rating
 router.post('/submit', async (req, res) => {
   const { userId, productId, rating, comment } = req.body;

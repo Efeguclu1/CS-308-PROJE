@@ -95,7 +95,7 @@ app.use("/api/payment", verifyToken, paymentRoutes);
 
 // ✅ Rating Routes
 const ratingRoutes = require("./routes/ratingRoutes");
-app.use("/api/ratings", verifyToken, ratingRoutes);
+app.use("/api/ratings", ratingRoutes);
 
 // Order routes
 const orderRoutes = require("./routes/orderRoutes");

@@ -55,7 +55,7 @@ app.use("/api/products", productRoutes);
 // Protected routes
 app.use("/api/payment", verifyToken, paymentRoutes);
 app.use("/api/orders", verifyToken, orderRoutes);
-app.use("/api/ratings", verifyToken, ratingRoutes);
+app.use("/api/ratings", ratingRoutes);
 
 // Restore the app.use for invoiceRoutes with verifyToken
 app.use("/api/invoices", verifyToken, invoiceRoutes);
@@ -73,7 +73,7 @@ app.use((err, req, res, next) => {
 });
 
 // Port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`API available at http://localhost:${PORT}/api`);

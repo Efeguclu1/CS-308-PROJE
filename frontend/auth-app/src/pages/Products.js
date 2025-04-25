@@ -13,7 +13,7 @@ const Products = () => {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(0); // 0 means all categories
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState('default'); // 'default', 'price-asc', 'price-desc'
+  const [sortOption, setSortOption] = useState('default'); // 'default', 'price-asc', 'price-desc', 'popularity'
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,7 +22,12 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5001/api/products');
+      const url = sortOption === 'popularity' 
+        ? 'http://localhost:5001/api/products?sort=popularity'
+        : 'http://localhost:5001/api/products';
+      console.log('Fetching products with URL:', url);
+      console.log('Current sort option:', sortOption);
+      const response = await axios.get(url);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -37,7 +42,10 @@ const Products = () => {
   const fetchProductsByCategory = async (categoryId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5001/api/products/category/${categoryId}`);
+      const url = sortOption === 'popularity'
+        ? `http://localhost:5001/api/products/category/${categoryId}?sort=popularity`
+        : `http://localhost:5001/api/products/category/${categoryId}`;
+      const response = await axios.get(url);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -57,7 +65,10 @@ const Products = () => {
     
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5001/api/products/search/${query}`);
+      const url = sortOption === 'popularity'
+        ? `http://localhost:5001/api/products/search/${query}?sort=popularity`
+        : `http://localhost:5001/api/products/search/${query}`;
+      const response = await axios.get(url);
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -84,6 +95,9 @@ const Products = () => {
       return [...products].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
     } else if (sortOption === 'price-desc') {
       return [...products].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+    } else if (sortOption === 'popularity') {
+      // The products should already be sorted by popularity from the backend
+      return products;
     }
     return products; // default: no sorting
   };
@@ -138,7 +152,72 @@ const Products = () => {
 
   // Handle sort change
   const handleSortChange = (option) => {
+    // Set the state for UI updates
     setSortOption(option);
+    
+    // Use the new option value directly instead of relying on state update
+    // which is asynchronous and won't be available immediately
+    if (selectedCategory > 0) {
+      // For category-specific products
+      const fetchWithSort = async () => {
+        try {
+          setLoading(true);
+          const url = option === 'popularity'
+            ? `http://localhost:5001/api/products/category/${selectedCategory}?sort=popularity`
+            : `http://localhost:5001/api/products/category/${selectedCategory}`;
+          const response = await axios.get(url);
+          setProducts(response.data);
+          setError(null);
+        } catch (err) {
+          setError('Error fetching products by category. Please try again later.');
+          console.error('Error fetching products by category:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWithSort();
+    } else if (searchQuery) {
+      // For search results
+      const fetchWithSort = async () => {
+        try {
+          setLoading(true);
+          const url = option === 'popularity'
+            ? `http://localhost:5001/api/products/search/${searchQuery}?sort=popularity`
+            : `http://localhost:5001/api/products/search/${searchQuery}`;
+          const response = await axios.get(url);
+          setProducts(response.data);
+          setError(null);
+        } catch (err) {
+          setError('Error searching products. Please try again later.');
+          console.error('Error searching products:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWithSort();
+    } else {
+      // For all products
+      const fetchWithSort = async () => {
+        try {
+          setLoading(true);
+          const url = option === 'popularity' 
+            ? 'http://localhost:5001/api/products?sort=popularity'
+            : 'http://localhost:5001/api/products';
+          const response = await axios.get(url);
+          setProducts(response.data);
+          setError(null);
+        } catch (err) {
+          setError('Error fetching products. Please try again later.');
+          console.error('Error fetching products:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWithSort();
+    }
   };
 
   // Navigate to product details
@@ -188,11 +267,13 @@ const Products = () => {
               {sortOption === 'default' && 'Sort By'}
               {sortOption === 'price-asc' && 'Price: Low to High'}
               {sortOption === 'price-desc' && 'Price: High to Low'}
+              {sortOption === 'popularity' && 'Most Popular'}
             </Dropdown.Toggle>
             <Dropdown.Menu className="w-100">
               <Dropdown.Item onClick={() => handleSortChange('default')}>Default</Dropdown.Item>
               <Dropdown.Item onClick={() => handleSortChange('price-asc')}>Price: Low to High</Dropdown.Item>
               <Dropdown.Item onClick={() => handleSortChange('price-desc')}>Price: High to Low</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleSortChange('popularity')}>Most Popular</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </Col>

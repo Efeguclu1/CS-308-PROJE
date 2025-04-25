@@ -19,16 +19,36 @@ const Login = () => {
   // Get the return path from location state, default to '/'
   const from = location.state?.from || '/';
 
+  // Check for returnTo parameter in URL query
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const returnTo = queryParams.get('returnTo');
+    if (returnTo) {
+      console.log('Return path found in URL:', returnTo);
+      // Store it for later redirect after login
+      sessionStorage.setItem('returnAfterLogin', returnTo);
+    }
+  }, [location.search]);
+
   // Check if user is already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('User is already logged in, redirecting to:', from);
+      // Check for stored return path
+      const returnPath = sessionStorage.getItem('returnAfterLogin');
       
-      // If coming from checkout, redirect to shipping
-      if (from.includes('/checkout')) {
-        navigate('/checkout/shipping');
+      if (returnPath) {
+        console.log('Redirecting to stored return path:', returnPath);
+        // Clear the stored path
+        sessionStorage.removeItem('returnAfterLogin');
+        navigate(returnPath);
       } else {
-        navigate(from);
+        console.log('User is already logged in, redirecting to:', from);
+        // If coming from checkout, redirect to shipping
+        if (from.includes('/checkout')) {
+          navigate('/checkout/shipping');
+        } else {
+          navigate(from);
+        }
       }
     }
   }, [isAuthenticated, user, navigate, from]);
@@ -39,7 +59,7 @@ const Login = () => {
     setError('');
     
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await axios.post("http://localhost:5001/api/auth/login", {
         email,
         password,
       });
@@ -53,11 +73,21 @@ const Login = () => {
         
         // Redirect after successful login
         setTimeout(() => {
-          // If coming from checkout, redirect to shipping
-          if (from.includes('/checkout')) {
-            navigate('/checkout/shipping');
+          // Check for stored return path
+          const returnPath = sessionStorage.getItem('returnAfterLogin');
+          
+          if (returnPath) {
+            console.log('Redirecting to stored return path after login:', returnPath);
+            // Clear the stored path
+            sessionStorage.removeItem('returnAfterLogin');
+            navigate(returnPath);
           } else {
-            navigate(from);
+            // If coming from checkout, redirect to shipping
+            if (from.includes('/checkout')) {
+              navigate('/checkout/shipping');
+            } else {
+              navigate(from);
+            }
           }
         }, 1500);
       } else {
