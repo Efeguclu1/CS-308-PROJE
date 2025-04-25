@@ -110,8 +110,11 @@ const Products = () => {
     const categoryParam = queryParams.get('category');
     const searchParam = queryParams.get('search');
     
+    console.log("URL params:", { categoryParam, searchParam });
+    
     if (categoryParam) {
       const categoryId = parseInt(categoryParam);
+      console.log(`Setting category filter to ID: ${categoryId}`);
       setSelectedCategory(categoryId);
       fetchProductsByCategory(categoryId);
     } else if (searchParam) {

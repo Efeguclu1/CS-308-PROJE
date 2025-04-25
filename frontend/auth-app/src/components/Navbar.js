@@ -47,21 +47,28 @@ const NavigationBar = () => {
 
   // Navigate to category products
   const navigateToCategory = (categoryId, categoryName) => {
-    navigate(`/products?category=${categoryId}`, { state: { categoryName } });
+    console.log(`Navigating to category: ${categoryName} with ID: ${categoryId}`);
+    if (!categoryId) {
+      console.warn(`No category ID found for: ${categoryName}, defaulting to all products`);
+      navigate('/products');
+    } else {
+      navigate(`/products?category=${categoryId}`, { state: { categoryName } });
+    }
     setExpanded(false);
   };
 
   // Map category name to id for the hardcoded navigation
   const getCategoryMapping = () => {
     const mapping = {
-      "computers": categories.find(c => c.name.toLowerCase().includes("computer"))?.id,
-      "phones": categories.find(c => c.name.toLowerCase().includes("smartphone"))?.id,
-      "tv": categories.find(c => c.name.toLowerCase().includes("electronic"))?.id,
-      "audio": categories.find(c => c.name.toLowerCase().includes("electronic"))?.id,
-      "accessories": categories.find(c => c.name.toLowerCase().includes("electronic"))?.id,
-      "gaming": categories.find(c => c.name.toLowerCase().includes("electronic"))?.id,
-      "wearables": categories.find(c => c.name.toLowerCase().includes("electronic"))?.id,
+      "computers": categories.find(c => c.name === "Computers")?.id,
+      "phones": categories.find(c => c.name === "Phones")?.id,
+      "tv": categories.find(c => c.name === "TV & Display")?.id,
+      "audio": categories.find(c => c.name === "Audio")?.id,
+      "accessories": categories.find(c => c.name === "Accessories")?.id,
+      "gaming": categories.find(c => c.name === "Gaming")?.id,
+      "wearables": categories.find(c => c.name === "Wearable Technology")?.id,
     };
+    console.log("Category mapping:", mapping);
     return mapping;
   };
 
@@ -155,51 +162,51 @@ const NavigationBar = () => {
         <Container>
           <Nav className="categories-nav">
             <Nav.Link 
-              onClick={() => categoryMapping.computers && navigateToCategory(categoryMapping.computers, "Computers")}
-              as={categoryMapping.computers ? "button" : Link} 
-              to={categoryMapping.computers ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.computers, "Computers")}
+              as="button"
+              className="text-button"
             >
               Computers
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.phones && navigateToCategory(categoryMapping.phones, "Phones")}
-              as={categoryMapping.phones ? "button" : Link} 
-              to={categoryMapping.phones ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.phones, "Phones")}
+              as="button"
+              className="text-button"
             >
               Phones
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.tv && navigateToCategory(categoryMapping.tv, "TV & Display")}
-              as={categoryMapping.tv ? "button" : Link} 
-              to={categoryMapping.tv ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.tv, "TV & Display")}
+              as="button"
+              className="text-button"
             >
               TV & Display
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.audio && navigateToCategory(categoryMapping.audio, "Audio")}
-              as={categoryMapping.audio ? "button" : Link} 
-              to={categoryMapping.audio ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.audio, "Audio")}
+              as="button"
+              className="text-button"
             >
               Audio
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.accessories && navigateToCategory(categoryMapping.accessories, "Accessories")}
-              as={categoryMapping.accessories ? "button" : Link} 
-              to={categoryMapping.accessories ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.accessories, "Accessories")}
+              as="button"
+              className="text-button"
             >
               Accessories
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.gaming && navigateToCategory(categoryMapping.gaming, "Gaming")}
-              as={categoryMapping.gaming ? "button" : Link} 
-              to={categoryMapping.gaming ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.gaming, "Gaming")}
+              as="button"
+              className="text-button"
             >
               Gaming
             </Nav.Link>
             <Nav.Link 
-              onClick={() => categoryMapping.wearables && navigateToCategory(categoryMapping.wearables, "Wearable Technology")}
-              as={categoryMapping.wearables ? "button" : Link} 
-              to={categoryMapping.wearables ? undefined : "/products"}
+              onClick={() => navigateToCategory(categoryMapping.wearables, "Wearable Technology")}
+              as="button"
+              className="text-button"
             >
               Wearable Technology
             </Nav.Link>
