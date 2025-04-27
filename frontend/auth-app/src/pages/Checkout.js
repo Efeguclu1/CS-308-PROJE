@@ -4,10 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import './Checkout.scss';
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const Checkout = () => {
   const { cartItems, getCartTotal } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('signin');
   const [email, setEmail] = useState('');
@@ -25,19 +27,32 @@ const Checkout = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    setMessage("");
+    setMessageType("");
     try {
-      // This would be replaced with your actual authentication API call
-      console.log('Sign in with:', email, password);
-      setMessage('Login successful! Redirecting to shipping...');
-      setMessageType('success');
-      
-      // Redirect to shipping after successful login 
-      setTimeout(() => {
-        navigate('/checkout/shipping');
-      }, 1500);
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email,
+        password,
+      });
+      if (response && response.data) {
+        login(response.data);
+        setMessage("Login successful! Redirecting to shipping...");
+        setMessageType("success");
+        setTimeout(() => {
+          navigate('/checkout/shipping');
+        }, 1500);
+      } else {
+        setMessage("An unexpected error occurred!");
+        setMessageType("danger");
+      }
     } catch (error) {
-      setMessage('Login failed');
-      setMessageType('danger');
+      if (error.response) {
+        setMessage(error.response.data.error || 'Failed to login. Please try again.');
+        setMessageType("danger");
+      } else {
+        setMessage("Could not connect to server. Is the backend running?");
+        setMessageType("danger");
+      }
     }
   };
 
