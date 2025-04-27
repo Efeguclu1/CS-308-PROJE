@@ -10,6 +10,91 @@ router.use((req, res, next) => {
   next();
 });
 
+// Admin: Get all orders with optional status filter
+router.get('/', async (req, res) => {
+  console.log('Fetching all orders for admin');
+  console.log('Request query:', req.query);
+  console.log('Auth user from token:', req.user);
+  
+  // Check if user is admin or product manager
+  if (!req.user || req.user.role !== 'product_manager') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Unauthorized. Only product managers can access this endpoint' 
+    });
+  }
+  
+  try {
+    let query = `
+      SELECT o.*, u.name AS user_name 
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+    `;
+    
+    const params = [];
+    
+    // Add status filter if provided
+    if (req.query.status) {
+      query += ' WHERE o.status = ?';
+      params.push(req.query.status);
+    }
+    
+    // Add order by
+    query += ' ORDER BY o.created_at DESC';
+    
+    const [orders] = await db.promise().query(query, params);
+    
+    console.log(`Found ${orders.length} orders`);
+    
+    // If no orders found, return empty array
+    if (orders.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get order items for each order
+    const ordersWithItems = [];
+    
+    for (const order of orders) {
+      try {
+        console.log(`Fetching items for order ${order.id}`);
+        const [items] = await db.promise().query(
+          `SELECT oi.*, p.name as product_name 
+           FROM order_items oi 
+           JOIN products p ON oi.product_id = p.id 
+           WHERE oi.order_id = ?`,
+          [order.id]
+        );
+        
+        ordersWithItems.push({
+          ...order,
+          items: items || []
+        });
+      } catch (itemError) {
+        console.error(`Error fetching items for order ${order.id}:`, itemError);
+        ordersWithItems.push({
+          ...order,
+          items: []
+        });
+      }
+    }
+    
+    res.json(ordersWithItems);
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    console.error('Error details:', {
+      code: error.code,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch orders', 
+      details: error.message 
+    });
+  }
+});
+
 // Kullanıcının siparişlerini getir
 router.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -157,6 +242,18 @@ router.get('/:orderId', async (req, res) => {
 router.patch('/:orderId/status', async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
+  
+  console.log(`Updating order ${orderId} status to ${status}`);
+  console.log('User from token:', req.user);
+  
+  // Check if user is admin or product manager
+  if (!req.user || req.user.role !== 'product_manager') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Unauthorized. Only product managers can update order status' 
+    });
+  }
+  
   if (!['processing', 'in-transit', 'delivered'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status value' });
   }

@@ -128,6 +128,9 @@ const NavigationBar = () => {
                         <NavDropdown.Item as={Link} to="/admin/review-approval">
                           <i className="bi bi-check-square"></i> Review Approval
                         </NavDropdown.Item>
+                        <NavDropdown.Item as={Link} to="/admin/order-processing">
+                          <i className="bi bi-truck"></i> Order Processing
+                        </NavDropdown.Item>
                       </>
                     )}
                     <NavDropdown.Divider />

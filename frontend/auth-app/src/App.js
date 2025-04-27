@@ -17,6 +17,7 @@ import OrderSuccess from './pages/OrderSuccess';
 import Profile from './pages/Profile';
 import Orders from './pages/Orders';
 import ReviewApproval from './pages/ProductManager/ReviewApproval';
+import OrderProcessing from './pages/ProductManager/OrderProcessing';
 import ProductDetails from './components/shopping/ProductDetails';
 import ProtectedRoute from './components/ProtectedRoute';
 import { setupAxiosInterceptors } from './utils/auth';
@@ -82,6 +83,11 @@ function App() {
               <Route path="/admin/review-approval" element={
                 <ProtectedRoute requiredRole="product_manager">
                   <ReviewApproval />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/order-processing" element={
+                <ProtectedRoute requiredRole="product_manager">
+                  <OrderProcessing />
                 </ProtectedRoute>
               } />
             </Routes>

@@ -66,7 +66,12 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Yanlış şifre" });
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: "1h" });
+    // Include the user role in the token payload
+    const token = jwt.sign(
+      { id: user.id, role: user.role }, 
+      process.env.JWT_SECRET || 'your-secret-key', 
+      { expiresIn: "1h" }
+    );
 
     console.log(`User logged in: ${user.email} (original case preserved)`);
     res.json({ 
