@@ -98,37 +98,37 @@ const Homepage = () => {
           </div>
           <Row>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/computers" className="category-card">
+              <Link to="/products?category=1" className="category-card">
                 <div className="category-image laptops"></div>
                 <p>Laptops</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/phones" className="category-card">
+              <Link to="/products?category=2" className="category-card">
                 <div className="category-image phones"></div>
                 <p>Phones</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/tv" className="category-card">
+              <Link to="/products?category=3" className="category-card">
                 <div className="category-image tvs"></div>
                 <p>Televisions</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/gaming" className="category-card">
+              <Link to="/products?category=5" className="category-card">
                 <div className="category-image gaming"></div>
                 <p>Gaming</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/audio" className="category-card">
+              <Link to="/products?category=4" className="category-card">
                 <div className="category-image audio"></div>
                 <p>Audio</p>
               </Link>
             </Col>
             <Col xs={6} md={4} lg={2} className="mb-4">
-              <Link to="/products/wearables" className="category-card">
+              <Link to="/products?category=7" className="category-card">
                 <div className="category-image wearables"></div>
                 <p>Wearables</p>
               </Link>
