@@ -14,7 +14,7 @@ const Homepage = () => {
               <Carousel.Caption>
                 <h2>New iPhone 15 Pro</h2>
                 <p>Discover the newest iPhone models</p>
-                <Link to="/products/phones">
+                <Link to="/products?category=2">
                   <Button variant="primary">Buy Now</Button>
                 </Link>
               </Carousel.Caption>
@@ -24,7 +24,7 @@ const Homepage = () => {
               <Carousel.Caption>
                 <h2>Upgrade Your Gaming Experience</h2>
                 <p>Improve your performance with the latest gaming equipment</p>
-                <Link to="/products/gaming">
+                <Link to="/products?category=5">
                   <Button variant="primary">Explore</Button>
                 </Link>
               </Carousel.Caption>
