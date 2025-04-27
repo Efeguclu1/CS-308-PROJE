@@ -21,6 +21,7 @@ import ProductDetails from './components/shopping/ProductDetails';
 import ProtectedRoute from './components/ProtectedRoute';
 import { setupAxiosInterceptors } from './utils/auth';
 import axios from 'axios';
+import CheckoutRegister from "./pages/CheckoutRegister";
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -50,6 +51,7 @@ function App() {
               
               {/* Checkout flow */}
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/register" element={<CheckoutRegister />} />
               <Route path="/checkout/shipping" element={
                 <ProtectedRoute>
                   <Shipping />

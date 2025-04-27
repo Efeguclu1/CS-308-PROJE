@@ -4,15 +4,17 @@ import { Container, Form, Button, Card, Row, Col, Alert } from "react-bootstrap"
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./Checkout.scss";
+import { API_BASE_URL } from '../config';
 
 const CheckoutRegister = () => {
   const { cartItems, getCartTotal } = useCart();
   const navigate = useNavigate();
   
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [address, setAddress] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState(""); // "success" or "danger"
 
@@ -27,10 +29,11 @@ const CheckoutRegister = () => {
     }
     
     try {
-      const response = await axios.post("http://localhost:5001/api/auth/register", {
-        username,
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+        name,
         email,
         password,
+        address,
       });
 
       if (response && response.data) {
@@ -127,13 +130,13 @@ const CheckoutRegister = () => {
                 
                 <Form onSubmit={handleRegister}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Username</Form.Label>
+                    <Form.Label>Name</Form.Label>
                     <Form.Control 
                       type="text" 
                       className="checkout-input" 
-                      placeholder="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)} 
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)} 
                       required 
                     />
                   </Form.Group>
@@ -165,7 +168,7 @@ const CheckoutRegister = () => {
                     </Form.Text>
                   </Form.Group>
                   
-                  <Form.Group className="mb-4">
+                  <Form.Group className="mb-3">
                     <Form.Label>Confirm Password</Form.Label>
                     <Form.Control 
                       type="password" 
@@ -173,6 +176,18 @@ const CheckoutRegister = () => {
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)} 
+                      required 
+                    />
+                  </Form.Group>
+                  
+                  <Form.Group className="mb-3">
+                    <Form.Label>Address</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      className="checkout-input"
+                      placeholder="Your address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)} 
                       required 
                     />
                   </Form.Group>
