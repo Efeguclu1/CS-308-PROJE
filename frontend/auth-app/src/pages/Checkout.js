@@ -15,12 +15,6 @@ const Checkout = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
-  // Guest checkout form state
-  const [guestEmail, setGuestEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-
   // Check if user is already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -45,13 +39,6 @@ const Checkout = () => {
       setMessage('Login failed');
       setMessageType('danger');
     }
-  };
-
-  const handleGuestCheckout = (e) => {
-    e.preventDefault();
-    // Save guest info and proceed to shipping
-    console.log('Guest checkout with:', guestEmail, firstName, lastName, phoneNumber);
-    navigate('/checkout/shipping');
   };
 
   const handleCreateAccount = () => {
@@ -131,7 +118,7 @@ const Checkout = () => {
           <Col lg={8}>
             <Card className="mb-4 checkout-card shadow">
               <Card.Body className="p-4 p-md-5">
-                <h2 className="checkout-section-title mb-4">Sign in or continue as guest</h2>
+                <h2 className="checkout-section-title mb-4">Sign in</h2>
 
                 {message && (
                   <Alert variant={messageType} className="mb-4">
@@ -191,76 +178,6 @@ const Checkout = () => {
                         Create an Account
                       </Button>
                     </div>
-                  </Tab>
-                  
-                  <Tab eventKey="guest" title="Continue as Guest">
-                    <div className="mb-4">
-                      <div className="bg-light p-3 rounded mb-4">
-                        <p className="mb-0">You don't need to create an account to place an order.</p>
-                      </div>
-                    </div>
-                    
-                    <Form onSubmit={handleGuestCheckout} className="auth-form">
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>First Name</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
-                              required
-                              className="checkout-input"
-                              placeholder="John"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Last Name</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
-                              required
-                              className="checkout-input"
-                              placeholder="Smith"
-                            />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-                      
-                      <Form.Group className="mb-3">
-                        <Form.Label>Email</Form.Label>
-                        <Form.Control
-                          type="email"
-                          value={guestEmail}
-                          onChange={(e) => setGuestEmail(e.target.value)}
-                          required
-                          className="checkout-input"
-                          placeholder="email@example.com"
-                        />
-                        <Form.Text className="text-muted">
-                          We'll send your order confirmation to this email address
-                        </Form.Text>
-                      </Form.Group>
-                      
-                      <Form.Group className="mb-4">
-                        <Form.Label>Phone Number</Form.Label>
-                        <Form.Control
-                          type="tel"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          required
-                          className="checkout-input"
-                          placeholder="(123) 456-7890"
-                        />
-                      </Form.Group>
-                      
-                      <Button variant="primary" type="submit" className="checkout-button w-100 mt-4">
-                        Continue to Shipping
-                      </Button>
-                    </Form>
                   </Tab>
                 </Tabs>
               </Card.Body>
