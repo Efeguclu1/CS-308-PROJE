@@ -153,4 +153,26 @@ router.get('/:orderId', async (req, res) => {
   }
 });
 
+// Sipariş durumunu güncelle
+router.patch('/:orderId/status', async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+  if (!['processing', 'in-transit', 'delivered'].includes(status)) {
+    return res.status(400).json({ success: false, error: 'Invalid status value' });
+  }
+  try {
+    const [result] = await db.promise().query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      [status, orderId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    res.json({ success: true, message: 'Order status updated', status });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ success: false, error: 'Failed to update order status' });
+  }
+});
+
 module.exports = router; 
