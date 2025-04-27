@@ -128,9 +128,61 @@ const ProductDetails = () => {
             </Col>
             
             <Col md={6} className="product-image-section">
-              <div className="product-placeholder-image">
-                <div className="placeholder-text">Product Image</div>
-              </div>
+              {(() => {
+                let imageUrl = '';
+                switch (product.name) {
+                  case "iPhone 15 Pro":
+                    imageUrl = "https://images.unsplash.com/photo-1710023038502-ba80a70a9f53?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "MacBook Pro M2":
+                    imageUrl = "https://images.unsplash.com/photo-1675868374786-3edd36dddf04?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Samsung QLED TV":
+                    imageUrl = "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?q=80&w=736&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Sony WH-1000XM4":
+                  case "Sony WH-1000XM4 Kulaklık":
+                    imageUrl = "https://images.unsplash.com/photo-1614860243518-c12eb2fdf66c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "PlayStation 5":
+                    imageUrl = "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Dell XPS 13":
+                    imageUrl = "https://images.unsplash.com/photo-1720556405438-d67f0f9ecd44?q=80&w=2030&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Samsung Galaxy S23":
+                    imageUrl = "https://images.unsplash.com/photo-1675452937281-24485562bd84?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "LG OLED TV":
+                    imageUrl = "https://images.unsplash.com/photo-1717295248230-93ea71f48f92?q=80&w=928&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Apple AirPods Pro":
+                    imageUrl = "https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Xbox Series X":
+                    imageUrl = "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Apple Watch Series 8":
+                    imageUrl = "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  case "Samsung Galaxy Watch 6":
+                    imageUrl = "https://images.unsplash.com/photo-1553545204-4f7d339aa06a?q=80&w=1093&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+                    break;
+                  default:
+                    imageUrl = '';
+                }
+                return imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={product.name}
+                    style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: '8px', background: '#f8f9fa' }}
+                  />
+                ) : (
+                  <div className="product-placeholder-image">
+                    <div className="placeholder-text">Product Image</div>
+                  </div>
+                );
+              })()}
             </Col>
           </Row>
         </Card.Body>
