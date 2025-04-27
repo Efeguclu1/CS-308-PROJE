@@ -1,8 +1,29 @@
+import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Card, Button, Carousel } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import './Homepage.scss';
+import { API_BASE_URL } from '../config';
 
 const Homepage = () => {
+  const [randomProducts, setRandomProducts] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/products`);
+        const products = response.data;
+        // Rastgele 4 ürün seç
+        const shuffled = products.sort(() => 0.5 - Math.random());
+        setRandomProducts(shuffled.slice(0, 4));
+      } catch (err) {
+        setRandomProducts([]);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   return (
     <div className="homepage">
       {/* Hero Banner */}
@@ -38,25 +59,29 @@ const Homepage = () => {
         <Container>
           <div className="section-header">
             <h2>Today's Deals</h2>
-            <Link to="/products/deals" className="view-all">View All</Link>
+            <Link to="/products" className="view-all">View All</Link>
           </div>
           <Row>
-            {[1, 2, 3, 4].map((item) => (
-              <Col lg={3} md={6} className="mb-4" key={item}>
-                <Card className="product-card">
+            {randomProducts.map((product) => (
+              <Col lg={3} md={6} className="mb-4" key={product.id}>
+                <Card className="product-card" style={{cursor: 'pointer'}} onClick={() => navigate(`/products/${product.id}`)}>
                   <div className="product-badge">SALE</div>
-                  <div className="product-image product-{item}"></div>
+                  <div className="product-image" style={{backgroundImage: `url(${product.image_url || ''})`}}></div>
                   <Card.Body>
-                    <Card.Title>Tech Product {item}</Card.Title>
+                    <Card.Title>{product.name}</Card.Title>
                     <div className="price-container">
-                      <span className="current-price">${(1299 - item * 100).toLocaleString()}</span>
-                      <span className="old-price">$1,299</span>
+                      <span className="current-price">${parseFloat(product.price).toLocaleString()}</span>
+                      <span className="old-price">{product.old_price ? `$${parseFloat(product.old_price).toLocaleString()}` : ''}</span>
                     </div>
                     <div className="product-rating">
-                      <span className="stars">★★★★<span className="gray-star">★</span></span>
-                      <span className="rating-count">(42)</span>
+                      <span className="stars">
+                        {Array.from({length: 5}).map((_, i) => (
+                          <span key={i} className={i < Math.round(product.average_rating || 0) ? '' : 'gray-star'}>★</span>
+                        ))}
+                      </span>
+                      <span className="rating-count">({product.rating_count || 0})</span>
                     </div>
-                    <Button variant="primary" className="mt-2 w-100">Add to Cart</Button>
+                    <Button variant="primary" className="mt-2 w-100" onClick={e => {e.stopPropagation(); /* sepete ekleme işlemi */}}>Add to Cart</Button>
                   </Card.Body>
                 </Card>
               </Col>
