@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Spinner, Alert } from 'react-bootstrap';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import './ProductReviews.scss';
 
 const ProductReviews = ({ productId }) => {
@@ -14,7 +15,7 @@ const ProductReviews = ({ productId }) => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5001/api/ratings/product/${productId}`);
+        const response = await axios.get(`${API_BASE_URL}/ratings/product/${productId}`);
         setReviews(response.data.ratings);
         setStats(response.data.stats);
         setError(null);

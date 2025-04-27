@@ -3,6 +3,7 @@ import axios from "axios";
 import { Container, Form, Button, Card, Row, Col, Alert } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import './Auth.scss';
+import { API_BASE_URL } from '../config';
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -25,7 +26,7 @@ const Register = () => {
     }
     
     try {
-      const response = await axios.post("http://localhost:5001/api/auth/register", {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         name,
         email,
         password,

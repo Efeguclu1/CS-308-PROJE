@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 
 const ProductList = ({ onAddToCart }) => {
   const [products, setProducts] = useState([]);
@@ -11,7 +12,7 @@ const ProductList = ({ onAddToCart }) => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5001/api/products');
+        const response = await axios.get(`${API_BASE_URL}/products`);
         setProducts(response.data);
         setError(null);
       } catch (err) {

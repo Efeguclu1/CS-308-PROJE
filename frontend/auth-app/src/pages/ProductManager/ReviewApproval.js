@@ -4,6 +4,7 @@ import { FaStar, FaRegStar, FaCheck, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import './ReviewApproval.scss';
+import { API_BASE_URL } from '../../config';
 
 const ReviewApproval = () => {
   const { user } = useAuth();
@@ -19,7 +20,7 @@ const ReviewApproval = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products');
+        const response = await axios.get(`${API_BASE_URL}/products`);
         setProducts(response.data);
       } catch (err) {
         console.error('Error fetching products:', err);
@@ -39,10 +40,10 @@ const ReviewApproval = () => {
       
       let url;
       if (productId) {
-        url = `http://localhost:5001/api/ratings/admin/product/${productId}`;
+        url = `${API_BASE_URL}/ratings/admin/product/${productId}`;
       } else {
         // Fetch all pending reviews if no product is selected
-        url = 'http://localhost:5001/api/ratings/admin/pending';
+        url = `${API_BASE_URL}/ratings/admin/pending`;
       }
       
       const response = await axios.get(url);
@@ -77,7 +78,7 @@ const ReviewApproval = () => {
 
   const handleApprove = async (reviewId) => {
     try {
-      await axios.put(`http://localhost:5001/api/ratings/approve/${reviewId}`);
+      await axios.put(`${API_BASE_URL}/ratings/approve/${reviewId}`);
       
       // Remove the approved review from the list
       setReviews(reviews.filter(review => review.id !== reviewId));
@@ -96,7 +97,7 @@ const ReviewApproval = () => {
 
   const handleReject = async (reviewId) => {
     try {
-      await axios.delete(`http://localhost:5001/api/ratings/${reviewId}`);
+      await axios.delete(`${API_BASE_URL}/ratings/${reviewId}`);
       
       // Remove the rejected review from the list
       setReviews(reviews.filter(review => review.id !== reviewId));

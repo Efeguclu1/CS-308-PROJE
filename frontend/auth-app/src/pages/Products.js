@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import './Products.scss';
 
 const Products = () => {
@@ -23,8 +24,8 @@ const Products = () => {
     try {
       setLoading(true);
       const url = sortOption === 'popularity' 
-        ? 'http://localhost:5001/api/products?sort=popularity'
-        : 'http://localhost:5001/api/products';
+        ? `${API_BASE_URL}/products?sort=popularity`
+        : `${API_BASE_URL}/products`;
       console.log('Fetching products with URL:', url);
       console.log('Current sort option:', sortOption);
       const response = await axios.get(url);
@@ -43,8 +44,8 @@ const Products = () => {
     try {
       setLoading(true);
       const url = sortOption === 'popularity'
-        ? `http://localhost:5001/api/products/category/${categoryId}?sort=popularity`
-        : `http://localhost:5001/api/products/category/${categoryId}`;
+        ? `${API_BASE_URL}/products/category/${categoryId}?sort=popularity`
+        : `${API_BASE_URL}/products/category/${categoryId}`;
       const response = await axios.get(url);
       setProducts(response.data);
       setError(null);
@@ -66,8 +67,8 @@ const Products = () => {
     try {
       setLoading(true);
       const url = sortOption === 'popularity'
-        ? `http://localhost:5001/api/products/search/${query}?sort=popularity`
-        : `http://localhost:5001/api/products/search/${query}`;
+        ? `${API_BASE_URL}/products/search/${query}?sort=popularity`
+        : `${API_BASE_URL}/products/search/${query}`;
       const response = await axios.get(url);
       setProducts(response.data);
       setError(null);
@@ -82,7 +83,7 @@ const Products = () => {
   // Function to fetch categories
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/products/categories/all');
+      const response = await axios.get(`${API_BASE_URL}/products/categories/all`);
       setCategories(response.data);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -166,8 +167,8 @@ const Products = () => {
         try {
           setLoading(true);
           const url = option === 'popularity'
-            ? `http://localhost:5001/api/products/category/${selectedCategory}?sort=popularity`
-            : `http://localhost:5001/api/products/category/${selectedCategory}`;
+            ? `${API_BASE_URL}/products/category/${selectedCategory}?sort=popularity`
+            : `${API_BASE_URL}/products/category/${selectedCategory}`;
           const response = await axios.get(url);
           setProducts(response.data);
           setError(null);
@@ -186,8 +187,8 @@ const Products = () => {
         try {
           setLoading(true);
           const url = option === 'popularity'
-            ? `http://localhost:5001/api/products/search/${searchQuery}?sort=popularity`
-            : `http://localhost:5001/api/products/search/${searchQuery}`;
+            ? `${API_BASE_URL}/products/search/${searchQuery}?sort=popularity`
+            : `${API_BASE_URL}/products/search/${searchQuery}`;
           const response = await axios.get(url);
           setProducts(response.data);
           setError(null);
@@ -206,8 +207,8 @@ const Products = () => {
         try {
           setLoading(true);
           const url = option === 'popularity' 
-            ? 'http://localhost:5001/api/products?sort=popularity'
-            : 'http://localhost:5001/api/products';
+            ? `${API_BASE_URL}/products?sort=popularity`
+            : `${API_BASE_URL}/products`;
           const response = await axios.get(url);
           setProducts(response.data);
           setError(null);

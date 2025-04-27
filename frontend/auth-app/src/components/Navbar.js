@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import './Navbar.scss';
 
 const NavigationBar = () => {
@@ -18,7 +19,7 @@ const NavigationBar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products/categories/all');
+        const response = await axios.get(`${API_BASE_URL}/products/categories/all`);
         setCategories(response.data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -118,7 +119,9 @@ const NavigationBar = () => {
                     <NavDropdown.Item as={Link} to="/orders">
                       <i className="bi bi-box"></i> My Orders
                     </NavDropdown.Item>
-                    
+                    <NavDropdown.Item as={Link} to="/profile">
+                      <i className="bi bi-person"></i> Profile
+                    </NavDropdown.Item>
                     {isProductManager && (
                       <>
                         <NavDropdown.Divider />
@@ -127,7 +130,6 @@ const NavigationBar = () => {
                         </NavDropdown.Item>
                       </>
                     )}
-                    
                     <NavDropdown.Divider />
                     <NavDropdown.Item onClick={handleLogout}>
                       <i className="bi bi-box-arrow-right"></i> Logout
@@ -148,9 +150,6 @@ const NavigationBar = () => {
                     <span className="cart-badge">{cartCount}</span>
                   )}
                 </div>
-              </Nav.Link>
-              <Nav.Link as={Link} to="/profile">
-                <i className="fas fa-user"></i> Profile
               </Nav.Link>
             </Nav>
           </Navbar.Collapse>

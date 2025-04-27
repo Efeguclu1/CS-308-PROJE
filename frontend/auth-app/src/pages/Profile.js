@@ -3,6 +3,7 @@ import { Container, Card, Form, Button, Row, Col, Alert } from 'react-bootstrap'
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './Profile.scss';
+import { API_BASE_URL } from '../config';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -52,7 +53,7 @@ const Profile = () => {
         }
       }
 
-      const response = await axios.put('http://localhost:5001/api/auth/profile', {
+      const response = await axios.put(`${API_BASE_URL}/auth/profile`, {
         name: formData.name,
         email: formData.email,
         address: formData.address,

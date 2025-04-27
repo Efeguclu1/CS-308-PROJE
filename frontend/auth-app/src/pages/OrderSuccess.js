@@ -4,6 +4,7 @@ import { Container, Card, Button, Spinner } from 'react-bootstrap';
 import { FaCheckCircle, FaFileInvoice } from 'react-icons/fa';
 import axios from 'axios';
 import { getToken } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 
 const OrderSuccess = () => {
   const location = useLocation();
@@ -37,7 +38,7 @@ const OrderSuccess = () => {
       }
       
       // Generate the full URL
-      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
+      const invoiceUrl = `${API_BASE_URL}/invoices/${orderId}`;
       console.log('Invoice URL:', invoiceUrl);
       
       // Open the PDF in a new window/tab - Requires token in header, so direct open won't work for protected route

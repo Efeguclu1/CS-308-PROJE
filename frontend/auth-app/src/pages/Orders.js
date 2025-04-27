@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getToken } from '../utils/auth';
 import { FaFileInvoice } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 
 const Orders = () => {
   const { user, loading: authLoading } = useAuth();
@@ -24,7 +25,7 @@ const Orders = () => {
     
     try {
       // Token will be automatically added by axios interceptor
-      const response = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
+      const response = await axios.get(`${API_BASE_URL}/orders/user/${user.id}`);
       console.log('Orders response:', response.data);
       
       // Store the response as array or empty array
@@ -98,7 +99,7 @@ const Orders = () => {
         throw new Error('No authentication token found');
       }
 
-      const invoiceUrl = `http://localhost:5001/api/invoices/${orderId}`;
+      const invoiceUrl = `${API_BASE_URL}/invoices/${orderId}`;
       console.log('Invoice URL:', invoiceUrl);
       
       // Use axios request to handle authentication

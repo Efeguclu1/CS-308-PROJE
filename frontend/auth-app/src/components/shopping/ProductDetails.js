@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import ProductReviews from '../products/ProductReviews';
 import AddReview from '../products/AddReview';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config';
 import './ProductDetails.scss';
 
 const ProductDetails = () => {
@@ -22,7 +23,7 @@ const ProductDetails = () => {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5001/api/products/${id}`);
+        const response = await axios.get(`${API_BASE_URL}/products/${id}`);
         setProduct(response.data);
         setError(null);
       } catch (err) {

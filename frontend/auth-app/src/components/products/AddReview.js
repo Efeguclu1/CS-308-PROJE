@@ -4,6 +4,7 @@ import { FaStar, FaRegStar } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import './AddReview.scss';
+import { API_BASE_URL } from '../../config';
 
 const AddReview = ({ productId, onReviewAdded }) => {
   const { user } = useAuth();
@@ -60,7 +61,7 @@ const AddReview = ({ productId, onReviewAdded }) => {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:5001/api/ratings/submit', {
+      const response = await axios.post(`${API_BASE_URL}/ratings/submit`, {
         userId: user.id,
         productId,
         rating,
