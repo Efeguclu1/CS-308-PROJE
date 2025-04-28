@@ -10,9 +10,9 @@ import './Navbar.scss';
 const NavigationBar = () => {
   const [expanded, setExpanded] = useState(false);
   const [categories, setCategories] = useState([]);
-  const { getCartCount } = useCart();
+  const { getItemsCount } = useCart();
   const { user, logout } = useAuth();
-  const cartCount = getCartCount();
+  const cartCount = getItemsCount();
   const navigate = useNavigate();
 
   // Fetch categories when component mounts
