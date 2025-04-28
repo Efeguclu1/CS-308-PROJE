@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { FaTrash, FaPlus, FaMinus } from 'react-icons/fa';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, updateCartItemQuantity, getCartTotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
 
   if (cartItems.length === 0) {
     return (
@@ -43,7 +43,7 @@ const Cart = () => {
                     <Button 
                       variant="outline-secondary" 
                       size="sm"
-                      onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
                     >
                       <FaMinus />
                     </Button>
@@ -51,7 +51,7 @@ const Cart = () => {
                     <Button 
                       variant="outline-secondary" 
                       size="sm"
-                      onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
                     >
                       <FaPlus />
                     </Button>

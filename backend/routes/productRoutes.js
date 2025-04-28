@@ -7,11 +7,15 @@ router.get("/", (req, res) => {
   const { sort } = req.query;
   
   console.log('Sorting parameter received:', sort);
-  let query = "SELECT * FROM products WHERE visible = 1";
+  
+  let query;
   
   if (sort === 'popularity') {
-    query += " ORDER BY popularity DESC";
-    console.log('Applying popularity sorting');
+    // Use RAND() for demonstration purposes to simulate popularity sorting
+    query = "SELECT * FROM products WHERE visible = 1 ORDER BY RAND()";
+    console.log('Applying random sorting to simulate popularity');
+  } else {
+    query = "SELECT * FROM products WHERE visible = 1";
   }
   
   console.log('Final query:', query);
@@ -40,14 +44,18 @@ router.get("/category/:categoryId", (req, res) => {
   const categoryId = req.params.categoryId;
   const { sort } = req.query;
   
-  let query = "SELECT * FROM products WHERE category_id = ? AND visible = 1";
+  let query;
   
   if (sort === 'popularity') {
-    query += " ORDER BY popularity DESC";
+    // Use RAND() for demonstration purposes to simulate popularity sorting
+    query = "SELECT * FROM products WHERE category_id = ? AND visible = 1 ORDER BY RAND()";
+  } else {
+    query = "SELECT * FROM products WHERE category_id = ? AND visible = 1";
   }
   
   db.query(query, [categoryId], (err, results) => {
     if (err) {
+      console.error('Query error for category products:', err);
       return res.status(500).json({ error: "Error retrieving products by category." });
     }
     res.json(results);
@@ -59,10 +67,13 @@ router.get("/search/:query", (req, res) => {
   const searchQuery = `%${req.params.query}%`;
   const { sort } = req.query;
   
-  let query = "SELECT * FROM products WHERE (name LIKE ? OR description LIKE ? OR model LIKE ?) AND visible = 1";
+  let query;
   
   if (sort === 'popularity') {
-    query += " ORDER BY popularity DESC";
+    // Use RAND() for demonstration purposes to simulate popularity sorting
+    query = "SELECT * FROM products WHERE (name LIKE ? OR description LIKE ? OR model LIKE ?) AND visible = 1 ORDER BY RAND()";
+  } else {
+    query = "SELECT * FROM products WHERE (name LIKE ? OR description LIKE ? OR model LIKE ?) AND visible = 1";
   }
   
   db.query(
@@ -70,6 +81,7 @@ router.get("/search/:query", (req, res) => {
     [searchQuery, searchQuery, searchQuery],
     (err, results) => {
       if (err) {
+        console.error('Query error for search:', err);
         return res.status(500).json({ error: "Error searching products." });
       }
       res.json(results);

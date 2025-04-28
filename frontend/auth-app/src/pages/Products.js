@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Row, Col, Button, Badge, Form, Spinner, Dropdown } from 'react-bootstrap';
+import { Container, Card, Row, Col, Button, Badge, Form, Spinner, Dropdown, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import './Products.scss';
+import '../components/shopping/ProductCard.scss';
 
 // Map of product names to image URLs
 const productImages = {
@@ -32,7 +34,9 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState(0); // 0 means all categories
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('default'); // 'default', 'price-asc', 'price-desc', 'popularity'
+  const [wishlistMap, setWishlistMap] = useState({});
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,10 +52,13 @@ const Products = () => {
       const response = await axios.get(url);
       
       // Add image URLs to products
-      const productsWithImages = response.data.map(product => ({
-        ...product,
-        image: productImages[product.name] || 'https://via.placeholder.com/150'
-      }));
+      const productsWithImages = response.data.map(product => {
+        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        return {
+          ...product,
+          image: imageUrl
+        };
+      });
       
       setProducts(productsWithImages);
       setError(null);
@@ -73,10 +80,13 @@ const Products = () => {
       const response = await axios.get(url);
       
       // Add image URLs to products
-      const productsWithImages = response.data.map(product => ({
-        ...product,
-        image: productImages[product.name] || 'https://via.placeholder.com/150'
-      }));
+      const productsWithImages = response.data.map(product => {
+        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        return {
+          ...product,
+          image: imageUrl
+        };
+      });
       
       setProducts(productsWithImages);
       setError(null);
@@ -103,10 +113,13 @@ const Products = () => {
       const response = await axios.get(url);
       
       // Add image URLs to products
-      const productsWithImages = response.data.map(product => ({
-        ...product,
-        image: productImages[product.name] || 'https://via.placeholder.com/150'
-      }));
+      const productsWithImages = response.data.map(product => {
+        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        return {
+          ...product,
+          image: imageUrl
+        };
+      });
       
       setProducts(productsWithImages);
       setError(null);
@@ -141,6 +154,59 @@ const Products = () => {
     return products; // default: no sorting
   };
 
+  // Fetch wishlist status for all products
+  const fetchWishlistStatus = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await axios.get(`${API_BASE_URL}/wishlist`);
+      const wishlistItems = response.data;
+      
+      // Create a map of product IDs to wishlist status
+      const newWishlistMap = {};
+      wishlistItems.forEach(item => {
+        newWishlistMap[item.id] = true;
+      });
+      
+      setWishlistMap(newWishlistMap);
+    } catch (err) {
+      console.error('Error fetching wishlist status:', err);
+    }
+  };
+
+  // Add item to wishlist
+  const addToWishlist = async (productId, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate(`/login?returnTo=/products`);
+      return;
+    }
+    
+    try {
+      await axios.post(`${API_BASE_URL}/wishlist/${productId}`);
+      setWishlistMap({...wishlistMap, [productId]: true});
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+    }
+  };
+
+  // Remove item from wishlist
+  const removeFromWishlist = async (productId, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    try {
+      await axios.delete(`${API_BASE_URL}/wishlist/${productId}`);
+      const newWishlistMap = {...wishlistMap};
+      delete newWishlistMap[productId];
+      setWishlistMap(newWishlistMap);
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
     
@@ -164,6 +230,13 @@ const Products = () => {
       fetchProducts();
     }
   }, [location.search]);
+
+  // Fetch wishlist status when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchWishlistStatus();
+    }
+  }, [isAuthenticated]);
 
   // Handle category change
   const handleCategoryChange = (e) => {
@@ -208,7 +281,17 @@ const Products = () => {
             ? `${API_BASE_URL}/products/category/${selectedCategory}?sort=popularity`
             : `${API_BASE_URL}/products/category/${selectedCategory}`;
           const response = await axios.get(url);
-          setProducts(response.data);
+          
+          // Add image URLs to products
+          const productsWithImages = response.data.map(product => {
+            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            return {
+              ...product,
+              image: imageUrl
+            };
+          });
+          
+          setProducts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error fetching products by category. Please try again later.');
@@ -228,7 +311,17 @@ const Products = () => {
             ? `${API_BASE_URL}/products/search/${searchQuery}?sort=popularity`
             : `${API_BASE_URL}/products/search/${searchQuery}`;
           const response = await axios.get(url);
-          setProducts(response.data);
+          
+          // Add image URLs to products
+          const productsWithImages = response.data.map(product => {
+            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            return {
+              ...product,
+              image: imageUrl
+            };
+          });
+          
+          setProducts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error searching products. Please try again later.');
@@ -248,7 +341,17 @@ const Products = () => {
             ? `${API_BASE_URL}/products?sort=popularity`
             : `${API_BASE_URL}/products`;
           const response = await axios.get(url);
-          setProducts(response.data);
+          
+          // Add image URLs to products
+          const productsWithImages = response.data.map(product => {
+            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            return {
+              ...product,
+              image: imageUrl
+            };
+          });
+          
+          setProducts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error fetching products. Please try again later.');
@@ -342,6 +445,30 @@ const Products = () => {
                     alt={product.name}
                     className="product-image"
                   />
+                  {isAuthenticated && (
+                    <div className="wishlist-icon-container">
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip id={`tooltip-${product.id}`}>
+                            {wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
+                          </Tooltip>
+                        }
+                      >
+                        <Button 
+                          variant={wishlistMap[product.id] ? "danger" : "outline-danger"} 
+                          size="sm" 
+                          className="wishlist-button"
+                          onClick={(e) => wishlistMap[product.id] 
+                            ? removeFromWishlist(product.id, e) 
+                            : addToWishlist(product.id, e)}
+                          aria-label={wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
+                        >
+                          <i className={`bi ${wishlistMap[product.id] ? "bi-heart-fill" : "bi-heart"}`}></i>
+                        </Button>
+                      </OverlayTrigger>
+                    </div>
+                  )}
                 </div>
                 <Card.Body>
                   <Card.Title 

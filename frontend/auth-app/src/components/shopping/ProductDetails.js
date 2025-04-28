@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Tabs, Tab, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
@@ -16,6 +16,8 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshReviews, setRefreshReviews] = useState(0);
+  const [inWishlist, setInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const { addToCart } = useCart();
   const { user, isAuthenticated } = useAuth();
 
@@ -37,9 +39,52 @@ const ProductDetails = () => {
     fetchProductDetails();
   }, [id]);
 
+  // Check if product is in wishlist when authenticated
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      checkWishlistStatus();
+    }
+  }, [isAuthenticated, id]);
+
+  const checkWishlistStatus = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/wishlist/check/${id}`);
+      setInWishlist(response.data.inWishlist);
+    } catch (err) {
+      console.error('Error checking wishlist status:', err);
+    }
+  };
+
   const handleAddToCart = () => {
     addToCart(product);
     // Show some kind of notification or feedback here
+  };
+
+  const handleToggleWishlist = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      navigate(`/login?returnTo=/products/${id}`);
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      if (inWishlist) {
+        // Remove from wishlist
+        await axios.delete(`${API_BASE_URL}/wishlist/${id}`);
+        setInWishlist(false);
+      } else {
+        // Add to wishlist
+        await axios.post(`${API_BASE_URL}/wishlist/${id}`);
+        setInWishlist(true);
+      }
+    } catch (err) {
+      console.error('Error updating wishlist:', err);
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   const handleReviewAdded = () => {
@@ -116,15 +161,36 @@ const ProductDetails = () => {
                 </ListGroup.Item>
               </ListGroup>
               
-              <Button 
-                variant="primary" 
-                size="lg" 
-                className="add-to-cart-btn mt-4"
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-              >
-                {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
-              </Button>
+              <div className="product-actions mt-4 d-flex">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="add-to-cart-btn"
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                >
+                  {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                </Button>
+                
+                <OverlayTrigger
+                  placement="top"
+                  overlay={
+                    <Tooltip id="wishlist-tooltip">
+                      {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                    </Tooltip>
+                  }
+                >
+                  <Button
+                    variant={inWishlist ? "danger" : "outline-danger"}
+                    className="wishlist-btn ms-2"
+                    onClick={handleToggleWishlist}
+                    disabled={wishlistLoading}
+                    aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                  >
+                    <i className={`bi ${inWishlist ? "bi-heart-fill" : "bi-heart"}`}></i>
+                  </Button>
+                </OverlayTrigger>
+              </div>
             </Col>
             
             <Col md={6} className="product-image-section">

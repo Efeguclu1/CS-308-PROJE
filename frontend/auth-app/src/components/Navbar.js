@@ -119,6 +119,9 @@ const NavigationBar = () => {
                     <NavDropdown.Item as={Link} to="/orders">
                       <i className="bi bi-box"></i> My Orders
                     </NavDropdown.Item>
+                    <NavDropdown.Item as={Link} to="/wishlist">
+                      <i className="bi bi-heart"></i> My Wishlist
+                    </NavDropdown.Item>
                     <NavDropdown.Item as={Link} to="/profile">
                       <i className="bi bi-person"></i> Profile
                     </NavDropdown.Item>

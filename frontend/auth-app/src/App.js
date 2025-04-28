@@ -23,6 +23,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { setupAxiosInterceptors } from './utils/auth';
 import axios from 'axios';
 import CheckoutRegister from "./pages/CheckoutRegister";
+import Wishlist from './pages/Wishlist';
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -49,6 +50,7 @@ function App() {
               <Route path="/products/:id" element={<ProductDetails />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
               
               {/* Checkout flow */}
               <Route path="/checkout" element={<Checkout />} />
