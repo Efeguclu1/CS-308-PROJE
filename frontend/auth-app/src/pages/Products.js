@@ -7,6 +7,23 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import './Products.scss';
 
+// Map of product names to image URLs
+const productImages = {
+  "iPhone 15 Pro": "https://images.unsplash.com/photo-1710023038502-ba80a70a9f53?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "MacBook Pro M2": "https://images.unsplash.com/photo-1675868374786-3edd36dddf04?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Samsung QLED TV": "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?q=80&w=736&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Sony WH-1000XM4": "https://images.unsplash.com/photo-1614860243518-c12eb2fdf66c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Sony WH-1000XM4 Kulaklık": "https://images.unsplash.com/photo-1614860243518-c12eb2fdf66c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "PlayStation 5": "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Dell XPS 13": "https://images.unsplash.com/photo-1720556405438-d67f0f9ecd44?q=80&w=2030&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Samsung Galaxy S23": "https://images.unsplash.com/photo-1675452937281-24485562bd84?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "LG OLED TV": "https://images.unsplash.com/photo-1717295248230-93ea71f48f92?q=80&w=928&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Apple AirPods Pro": "https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Xbox Series X": "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Apple Watch Series 8": "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  "Samsung Galaxy Watch 6": "https://images.unsplash.com/photo-1553545204-4f7d339aa06a?q=80&w=1093&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+};
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -29,7 +46,14 @@ const Products = () => {
       console.log('Fetching products with URL:', url);
       console.log('Current sort option:', sortOption);
       const response = await axios.get(url);
-      setProducts(response.data);
+      
+      // Add image URLs to products
+      const productsWithImages = response.data.map(product => ({
+        ...product,
+        image: productImages[product.name] || 'https://via.placeholder.com/150'
+      }));
+      
+      setProducts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error fetching products. Please try again later.');
@@ -47,7 +71,14 @@ const Products = () => {
         ? `${API_BASE_URL}/products/category/${categoryId}?sort=popularity`
         : `${API_BASE_URL}/products/category/${categoryId}`;
       const response = await axios.get(url);
-      setProducts(response.data);
+      
+      // Add image URLs to products
+      const productsWithImages = response.data.map(product => ({
+        ...product,
+        image: productImages[product.name] || 'https://via.placeholder.com/150'
+      }));
+      
+      setProducts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error fetching products by category. Please try again later.');
@@ -70,7 +101,14 @@ const Products = () => {
         ? `${API_BASE_URL}/products/search/${query}?sort=popularity`
         : `${API_BASE_URL}/products/search/${query}`;
       const response = await axios.get(url);
-      setProducts(response.data);
+      
+      // Add image URLs to products
+      const productsWithImages = response.data.map(product => ({
+        ...product,
+        image: productImages[product.name] || 'https://via.placeholder.com/150'
+      }));
+      
+      setProducts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error searching products. Please try again later.');
@@ -298,6 +336,13 @@ const Products = () => {
           {sortedProducts.map((product) => (
             <Col key={product.id}>
               <Card className="h-100 shadow-sm product-card">
+                <div className="product-image-container">
+                  <img 
+                    src={product.image}
+                    alt={product.name}
+                    className="product-image"
+                  />
+                </div>
                 <Card.Body>
                   <Card.Title 
                     className="product-title-link"

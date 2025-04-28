@@ -207,6 +207,8 @@ const Shipping = () => {
                           <option value="New York">New York</option>
                           <option value="California">California</option>
                           <option value="Texas">Texas</option>
+                          <option value="Istanbul">Istanbul</option>
+                          <option value="Ankara">Ankara</option>
                           {/* Add more options as needed */}
                         </Form.Select>
                         <Form.Control.Feedback type="invalid">

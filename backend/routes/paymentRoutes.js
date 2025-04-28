@@ -153,15 +153,43 @@ router.post('/process', async (req, res) => {
         const emailResult = await sendInvoiceEmail({
           to: invoiceEmail, // Using the email from checkout or user record
           subject: `Your Invoice for Order #${orderId}`,
-          text: `Dear ${user.name},\n\nThank you for your purchase. Your order #${orderId} has been processed successfully. Please find your invoice attached.\n\nRegards,\nE-Commerce Store Team`,
-          html: `<div>
-                  <h2>Thank you for your purchase!</h2>
-                  <p>Dear ${user.name},</p>
-                  <p>Your order #${orderId} has been processed successfully.</p>
-                  <p>Please find your invoice attached to this email.</p>
-                  <p>If you have any questions, please contact our customer service.</p>
-                  <p>Regards,<br>E-Commerce Store Team</p>
-                </div>`,
+          text: `Dear ${user.name},\n\nThank you for your purchase. Your order #${orderId} has been processed successfully. Please find your invoice attached.\n\nRegards,\nTechStore Team`,
+          html: `<!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Order Confirmation</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background-color: #f9f9f9; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>Thank You For Your Order!</h1>
+                    </div>
+                    <div class="content">
+                      <p>Dear ${user.name},</p>
+                      <p>Your order #${orderId} has been processed successfully.</p>
+                      <p>Please find your invoice attached to this email.</p>
+                      <p>If you have any questions, please contact our customer service.</p>
+                      <p><strong>Order Details:</strong></p>
+                      <p>Order ID: ${orderId}<br>
+                      Total Amount: $${parseFloat(totalAmount).toFixed(2)}<br>
+                      Status: Processing</p>
+                    </div>
+                    <div class="footer">
+                      <p>Regards,<br>TechStore Team</p>
+                      <p>© 2025 TechStore. All rights reserved.</p>
+                    </div>
+                  </div>
+                </body>
+                </html>`,
           invoicePath: invoicePath
         });
         

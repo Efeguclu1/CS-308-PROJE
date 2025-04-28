@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, ListGroup, Button, Form, Badge } from 'react-bootstrap';
+import { Card, ListGroup, Button, Form, Badge, Image } from 'react-bootstrap';
 
 const ShoppingCart = ({ cartItems, onUpdateQuantity, onRemoveItem, onCheckout, total }) => {
   // Function to handle quantity changes
@@ -23,9 +23,19 @@ const ShoppingCart = ({ cartItems, onUpdateQuantity, onRemoveItem, onCheckout, t
                 {cartItems.map((item) => (
                   <ListGroup.Item key={item.id} className="d-flex flex-column">
                     <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="my-0">{item.name}</h6>
-                        <small className="text-muted">${parseFloat(item.price).toFixed(2)} each</small>
+                      <div className="d-flex">
+                        <div className="me-3">
+                          <Image 
+                            src={item.image || 'https://via.placeholder.com/150'} 
+                            alt={item.name} 
+                            style={{ width: '60px', height: '60px', objectFit: 'contain' }} 
+                            thumbnail
+                          />
+                        </div>
+                        <div>
+                          <h6 className="my-0">{item.name}</h6>
+                          <small className="text-muted">${parseFloat(item.price).toFixed(2)} each</small>
+                        </div>
                       </div>
                       <Badge bg="info" pill className="d-flex align-items-center">
                         Qty: {item.quantity}

@@ -37,11 +37,19 @@ const generateInvoice = async (order, user) => {
   
   return new Promise((resolve, reject) => {
     try {
-      // Create PDF document with a better margin
+      // Create PDF document with a better margin and UTF-8 encoding
       const doc = new PDFDocument({ 
         margin: 50,
         size: 'A4',
-        bufferPages: true
+        bufferPages: true,
+        info: {
+          Title: `Invoice #INV-${order.id}`,
+          Author: 'TechStore E-Commerce',
+          Producer: 'TechStore',
+          CreationDate: new Date()
+        },
+        lang: 'en-US',
+        displayTitle: true
       });
       
       const writeStream = fs.createWriteStream(invoicePath);
@@ -53,9 +61,9 @@ const generateInvoice = async (order, user) => {
       // Pipe the PDF to the file
       doc.pipe(writeStream);
       
-      // Set some document properties
-      doc.info.Title = `Invoice #INV-${order.id}`;
-      doc.info.Author = 'E-Commerce Store';
+      // Register fonts for better character support
+      doc.registerFont('Helvetica', 'Helvetica');
+      doc.font('Helvetica');
       
       // Background color for header
       drawRoundedRect(doc, 50, 50, doc.page.width - 100, 130, 5, colors.primary);
@@ -80,7 +88,7 @@ const generateInvoice = async (order, user) => {
       
       // Company logo or name on the right
       doc.fill('white').fontSize(18)
-         .text('E-Commerce Store', statusX, 125, { width: statusWidth, align: 'right' });
+         .text('TechStore', statusX, 125, { width: statusWidth, align: 'right' });
       
       // Reset text color
       doc.fill(colors.text);
@@ -91,11 +99,11 @@ const generateInvoice = async (order, user) => {
       
       // Company info
       doc.fontSize(14).fillColor(colors.primary).text('FROM', 50, topSectionY);
-      doc.fillColor(colors.text).fontSize(12).text('E-Commerce Store', 50, topSectionY + 25);
+      doc.fillColor(colors.text).fontSize(12).text('TechStore', 50, topSectionY + 25);
       doc.fillColor(colors.secondary).fontSize(10);
       doc.text('123 Commerce Street', 50, topSectionY + 45);
       doc.text('Istanbul, Turkey', 50, topSectionY + 60);
-      doc.text('info@ecommerce-store.com', 50, topSectionY + 75);
+      doc.text('info@techstore.com', 50, topSectionY + 75);
       doc.text('+90 212 XXX XX XX', 50, topSectionY + 90);
       
       // Customer info
@@ -105,11 +113,9 @@ const generateInvoice = async (order, user) => {
       doc.text(`Email: ${user.email}`, 50 + columnWidth, topSectionY + 45);
       
       // Make sure the address wraps properly with enough space
-      const addressLines = doc.heightOfString(order.delivery_address, {
-        width: columnWidth - 20,
-      });
+      const cleanAddress = order.delivery_address ? order.delivery_address.replace(/[^\x00-\x7F]/g, '') : 'Address not provided';
       
-      doc.text(order.delivery_address, 50 + columnWidth, topSectionY + 60, {
+      doc.text(cleanAddress, 50 + columnWidth, topSectionY + 60, {
         width: columnWidth - 20,
         height: 100, // Increased height to ensure visibility
         ellipsis: false
@@ -149,9 +155,12 @@ const generateInvoice = async (order, user) => {
             drawRoundedRect(doc, 50, tableRow - 10, doc.page.width - 100, 30, 0, colors.light);
           }
           
+          // Clean product name of any non-ASCII characters
+          const cleanProductName = item.product_name ? item.product_name.replace(/[^\x00-\x7F]/g, '') : 'Product';
+          
           doc.fontSize(10).fillColor(colors.text);
           doc.text(`#${item.product_id}`, 70, tableRow);
-          doc.text(item.product_name || 'Product', 170, tableRow, { width: 140, ellipsis: true });
+          doc.text(cleanProductName, 170, tableRow, { width: 140, ellipsis: true });
           doc.text(item.quantity.toString(), 320, tableRow);
           doc.text(`$${price.toFixed(2)}`, 380, tableRow);
           doc.text(`$${amount.toFixed(2)}`, 480, tableRow);
@@ -171,11 +180,6 @@ const generateInvoice = async (order, user) => {
       
       doc.fontSize(10).fillColor(colors.secondary).text('Subtotal:', 380, tableRow);
       doc.fillColor(colors.text).text(`$${totalAmount.toFixed(2)}`, 480, tableRow);
-      
-      // Tax (if applicable)
-      // tableRow += 20;
-      // doc.fillColor(colors.secondary).text('Tax (0%):', 380, tableRow);
-      // doc.fillColor(colors.text).text('$0.00', 480, tableRow);
       
       // Total
       tableRow += 20;
@@ -200,7 +204,7 @@ const generateInvoice = async (order, user) => {
       // Footer
       const footerY = doc.page.height - 50;
       doc.fillColor(colors.secondary).fontSize(8)
-         .text('© 2025 E-Commerce Store. All rights reserved.', 50, footerY, { align: 'center' });
+         .text('© 2025 TechStore. All rights reserved.', 50, footerY, { align: 'center' });
       
       // Add page numbers
       const pages = doc.bufferedPageRange();
