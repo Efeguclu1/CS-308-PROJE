@@ -15,6 +15,7 @@ const Orders = () => {
   const [downloadingInvoice, setDownloadingInvoice] = useState({});
   const navigate = useNavigate();
   const [retryCount, setRetryCount] = useState(0);
+  const [cancellingOrder, setCancellingOrder] = useState({});
 
   const fetchOrders = async () => {
     if (!user || !user.id) return;
@@ -123,6 +124,24 @@ const Orders = () => {
       alert('Failed to access invoice. Please try again later.');
     } finally {
       setDownloadingInvoice(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    setCancellingOrder(prev => ({ ...prev, [orderId]: true }));
+    
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/orders/${orderId}/cancel`);
+      
+      if (response.data.success) {
+        // Siparişleri yeniden yükle
+        fetchOrders();
+      }
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      alert(err.response?.data?.error || 'Failed to cancel order');
+    } finally {
+      setCancellingOrder(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -235,7 +254,7 @@ const Orders = () => {
                               size="sm"
                               onClick={() => handleDownloadInvoice(order.id)}
                               disabled={downloadingInvoice[order.id]}
-                              className="mt-2"
+                              className="mt-2 me-2"
                             >
                               {downloadingInvoice[order.id] ? (
                                 <>
@@ -251,10 +270,36 @@ const Orders = () => {
                                 </>
                               ) : (
                                 <>
-                                  <FaFileInvoice className="me-1" /> Download Invoice
+                                  <FaFileInvoice className="me-1" />
+                                  Download Invoice
                                 </>
                               )}
                             </Button>
+                            {order.status === 'processing' && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handleCancelOrder(order.id)}
+                                disabled={cancellingOrder[order.id]}
+                                className="mt-2"
+                              >
+                                {cancellingOrder[order.id] ? (
+                                  <>
+                                    <Spinner 
+                                      as="span" 
+                                      animation="border" 
+                                      size="sm" 
+                                      role="status" 
+                                      aria-hidden="true" 
+                                      className="me-1"
+                                    />
+                                    Cancelling...
+                                  </>
+                                ) : (
+                                  'Cancel Order'
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Col>

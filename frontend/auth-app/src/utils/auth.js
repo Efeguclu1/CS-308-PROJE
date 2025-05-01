@@ -57,7 +57,9 @@ export const setupAxiosInterceptors = (axios) => {
       const token = getToken();
       if (token) {
         console.log(`Adding token to request: ${config.url}`);
+        // Make sure Authorization header is properly formatted
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('Request headers:', config.headers);
       } else {
         console.warn(`No token available for request: ${config.url}`);
       }

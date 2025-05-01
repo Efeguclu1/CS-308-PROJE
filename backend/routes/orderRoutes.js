@@ -272,4 +272,133 @@ router.patch('/:orderId/status', async (req, res) => {
   }
 });
 
+// Siparişi iptal et
+router.patch('/:orderId/cancel', async (req, res) => {
+  const { orderId } = req.params;
+  console.log('=== Cancel Order Debug ===');
+  console.log('OrderId:', orderId);
+  console.log('User from token:', req.user);
+  
+  if (!req.user || !req.user.id) {
+    console.log('No user in request');
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  try {
+    await db.promise().beginTransaction();
+    
+    // Test database connection first
+    await db.promise().query('SELECT 1');
+    
+    // Önce siparişi getir
+    console.log('Fetching order details...');
+    const [orders] = await db.promise().query(
+      'SELECT * FROM orders WHERE id = ?',
+      [orderId]
+    );
+    
+    console.log('Found orders:', orders);
+    
+    if (orders.length === 0) {
+      console.log('Order not found');
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found' 
+      });
+    }
+    
+    const order = orders[0];
+    console.log('Order details:', order);
+    console.log('Current user ID:', req.user.id, '(type:', typeof req.user.id, ')');
+    console.log('Order user ID:', order.user_id, '(type:', typeof order.user_id, ')');
+    
+    // Convert both IDs to strings for comparison
+    const userId = String(req.user.id);
+    const orderUserId = String(order.user_id);
+    
+    console.log('Comparing user IDs:', userId, 'vs', orderUserId);
+    
+    // Kullanıcının kendi siparişini iptal etme yetkisi var mı kontrol et
+    if (userId !== orderUserId) {
+      console.log('User ID mismatch - unauthorized cancel attempt');
+      return res.status(403).json({ 
+        success: false, 
+        error: 'You can only cancel your own orders',
+        debug: {
+          userId: userId,
+          orderUserId: orderUserId
+        }
+      });
+    }
+    
+    // Sipariş sadece "processing" durumunda iptal edilebilir
+    console.log('Order status:', order.status);
+    if (order.status !== 'processing') {
+      console.log('Invalid order status for cancellation');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Only orders in "processing" status can be cancelled' 
+      });
+    }
+    
+    // Siparişi "cancelled" durumuna güncelle
+    console.log('Updating order status to cancelled...');
+    const [updateResult] = await db.promise().query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      ['cancelled', orderId]
+    );
+    
+    console.log('Update result:', updateResult);
+    
+    if (updateResult.affectedRows === 0) {
+      console.log('No rows affected by update');
+      throw new Error('Failed to update order status');
+    }
+    
+    console.log('Order cancelled successfully');
+    await db.promise().commit();
+    res.json({ 
+      success: true, 
+      message: 'Order cancelled successfully' 
+    });
+    
+  } catch (error) {
+    await db.promise().rollback();
+    if (error.code === 'PROTOCOL_CONNECTION_LOST') {
+      // Handle database connection issues
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection error',
+        details: error.message
+      });
+    }
+    console.error('=== Detailed Error Log ===');
+    console.error('Request body:', req.body);
+    console.error('Request user:', req.user);
+    console.error('Database connection status:', db.state);
+    console.error('Error:', error);
+    console.error('=== Error Details ===');
+    console.error('Error cancelling order:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    if (error.code) console.error('SQL Error code:', error.code);
+    if (error.sqlMessage) console.error('SQL Error message:', error.sqlMessage);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to cancel order',
+      details: error.message,
+      debug: {
+        errorName: error.name,
+        errorCode: error.code,
+        sqlMessage: error.sqlMessage
+      }
+    });
+  }
+});
+
 module.exports = router; 
