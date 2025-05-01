@@ -1,29 +1,45 @@
-const axios = require('axios');
+const bcrypt = require('bcryptjs');
+const mysql = require('mysql2');
+require('dotenv').config();
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const password = 'admin123'; // Admin şifresi
+const email = 'admin@example.com'; // Admin email'i
+const address = 'Admin Office Address'; // Admin adresi
 
-// Admin registration data - customize these values as needed
-const adminData = {
-  name: "Site Admin",
-  email: "admin@techstore.com",
-  password: "Admin123!",
-  address: "Tech Store Headquarters",
-  adminKey: "admin-secret-123"  // Required admin key from the backend code
-};
+// Veritabanı bağlantısı
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'root',
+  database: 'cs308project',
+});
 
-// Register admin user
-async function registerAdmin() {
+async function createAdmin() {
   try {
-    console.log('Attempting to register admin user...');
-    const response = await axios.post(`${API_BASE_URL}/auth/admin/register`, adminData);
-    console.log('Admin registration successful:', response.data);
-    console.log('\nAdmin credentials:');
-    console.log(`Email: ${adminData.email}`);
-    console.log(`Password: ${adminData.password}`);
+    // Şifreyi hash'le
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Admin kullanıcısını ekle
+    const query = `
+      INSERT INTO users (email, password, name, role, address) 
+      VALUES (?, ?, 'Admin User', 'product_manager', ?)
+    `;
+
+    db.query(query, [email, hashedPassword, address], (err, result) => {
+      if (err) {
+        console.error('Error creating admin:', err);
+        process.exit(1);
+      }
+      console.log('Admin user created successfully!');
+      console.log('Email:', email);
+      console.log('Password:', password);
+      process.exit(0);
+    });
   } catch (error) {
-    console.error('Admin registration failed:', error.response ? error.response.data : error.message);
+    console.error('Error:', error);
+    process.exit(1);
   }
 }
 
-// Execute the function
-registerAdmin();
+createAdmin();
