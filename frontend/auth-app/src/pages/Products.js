@@ -35,6 +35,7 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState('default'); // 'default', 'price-asc', 'price-desc', 'popularity'
   const [wishlistMap, setWishlistMap] = useState({});
+  const [discountedProducts, setDiscountedProducts] = useState({});
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +62,7 @@ const Products = () => {
       });
       
       setProducts(productsWithImages);
+      await fetchDiscounts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error fetching products. Please try again later.');
@@ -89,6 +91,7 @@ const Products = () => {
       });
       
       setProducts(productsWithImages);
+      await fetchDiscounts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error fetching products by category. Please try again later.');
@@ -122,6 +125,7 @@ const Products = () => {
       });
       
       setProducts(productsWithImages);
+      await fetchDiscounts(productsWithImages);
       setError(null);
     } catch (err) {
       setError('Error searching products. Please try again later.');
@@ -205,6 +209,22 @@ const Products = () => {
     } catch (err) {
       console.error('Error removing from wishlist:', err);
     }
+  };
+
+  // Function to fetch discounts for products
+  const fetchDiscounts = async (productsData) => {
+    const discounts = {};
+    for (const product of productsData) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/discounts/product/${product.id}`);
+        if (response.data.hasDiscount) {
+          discounts[product.id] = response.data;
+        }
+      } catch (error) {
+        console.error(`Error fetching discount for product ${product.id}:`, error);
+      }
+    }
+    setDiscountedProducts(discounts);
   };
 
   useEffect(() => {
@@ -292,6 +312,7 @@ const Products = () => {
           });
           
           setProducts(productsWithImages);
+          await fetchDiscounts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error fetching products by category. Please try again later.');
@@ -322,6 +343,7 @@ const Products = () => {
           });
           
           setProducts(productsWithImages);
+          await fetchDiscounts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error searching products. Please try again later.');
@@ -352,6 +374,7 @@ const Products = () => {
           });
           
           setProducts(productsWithImages);
+          await fetchDiscounts(productsWithImages);
           setError(null);
         } catch (err) {
           setError('Error fetching products. Please try again later.');
@@ -436,85 +459,109 @@ const Products = () => {
         <div className="alert alert-info">No products found.</div>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
-          {sortedProducts.map((product) => (
-            <Col key={product.id}>
-              <Card className="h-100 shadow-sm product-card">
-                <div className="product-image-container">
-                  <img 
-                    src={product.image}
-                    alt={product.name}
-                    className="product-image"
-                  />
-                  {isAuthenticated && (
-                    <div className="wishlist-icon-container">
-                      <OverlayTrigger
-                        placement="top"
-                        overlay={
-                          <Tooltip id={`tooltip-${product.id}`}>
-                            {wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
-                          </Tooltip>
-                        }
-                      >
-                        <Button 
-                          variant={wishlistMap[product.id] ? "danger" : "outline-danger"} 
-                          size="sm" 
-                          className="wishlist-button"
-                          onClick={(e) => wishlistMap[product.id] 
-                            ? removeFromWishlist(product.id, e) 
-                            : addToWishlist(product.id, e)}
-                          aria-label={wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
+          {sortedProducts.map((product) => {
+            const discount = discountedProducts[product.id];
+            const finalPrice = discount ? discount.discountedPrice : product.price;
+            const isDiscounted = discount && discount.hasDiscount;
+
+            return (
+              <Col key={product.id}>
+                <Card className="h-100 shadow-sm product-card">
+                  <div className="product-image-container">
+                    <img 
+                      src={product.image}
+                      alt={product.name}
+                      className="product-image"
+                    />
+                    {isAuthenticated && (
+                      <div className="wishlist-icon-container">
+                        <OverlayTrigger
+                          placement="top"
+                          overlay={
+                            <Tooltip id={`tooltip-${product.id}`}>
+                              {wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
+                            </Tooltip>
+                          }
                         >
-                          <i className={`bi ${wishlistMap[product.id] ? "bi-heart-fill" : "bi-heart"}`}></i>
-                        </Button>
-                      </OverlayTrigger>
-                    </div>
-                  )}
-                </div>
-                <Card.Body>
-                  <Card.Title 
-                    className="product-title-link"
-                    onClick={() => handleViewDetails(product.id)}
-                  >
-                    {product.name}
-                  </Card.Title>
-                  <Card.Text className="product-description">{product.description}</Card.Text>
-                  <div className="product-details">
-                    <div><strong>Model:</strong> {product.model}</div>
-                    <div><strong>Warranty:</strong> {product.warranty_months} months</div>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center mt-3">
-                    <Badge bg="primary" className="price-badge">${product.price}</Badge>
-                    {product.stock <= 0 ? (
-                      <Badge bg="danger" className="stock-badge">Out of Stock</Badge>
-                    ) : product.stock <= 5 ? (
-                      <Badge bg="warning" text="dark" className="stock-badge low-stock-badge">
-                        <FaExclamationTriangle className="me-1" /> Only {product.stock} left
-                      </Badge>
-                    ) : (
-                      <Badge bg="secondary" className="stock-badge">Stock: {product.stock}</Badge>
+                          <Button 
+                            variant={wishlistMap[product.id] ? "danger" : "outline-danger"} 
+                            size="sm" 
+                            className="wishlist-button"
+                            onClick={(e) => wishlistMap[product.id] 
+                              ? removeFromWishlist(product.id, e) 
+                              : addToWishlist(product.id, e)}
+                            aria-label={wishlistMap[product.id] ? "Remove from Wishlist" : "Add to Wishlist"}
+                          >
+                            <i className={`bi ${wishlistMap[product.id] ? "bi-heart-fill" : "bi-heart"}`}></i>
+                          </Button>
+                        </OverlayTrigger>
+                      </div>
                     )}
                   </div>
-                  <div className="d-flex gap-2 mt-3">
-                    <Button 
-                      variant="outline-secondary" 
-                      className="flex-grow-1"
+                  <Card.Body>
+                    <Card.Title 
+                      className="product-title-link"
                       onClick={() => handleViewDetails(product.id)}
                     >
-                      View Details
-                    </Button>
-                    <Button 
-                      variant="outline-primary" 
-                      className="flex-grow-1"
-                      onClick={() => addToCart(product)}
-                      disabled={product.stock <= 0}
-                    >
-                      {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
+                      {product.name}
+                    </Card.Title>
+                    <Card.Text className="product-description">{product.description}</Card.Text>
+                    <div className="product-details">
+                      <div><strong>Model:</strong> {product.model}</div>
+                      <div><strong>Warranty:</strong> {product.warranty_months} months</div>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mt-3">
+                      {isDiscounted ? (
+                        <div>
+                          <span className="text-decoration-line-through text-muted me-2">
+                            ${product.price}
+                          </span>
+                          <Badge bg="danger" className="price-badge">
+                            ${finalPrice.toFixed(2)}
+                          </Badge>
+                          <Badge bg="danger" className="ms-2">
+                            {discount.discount_type === 'percentage'
+                              ? `${discount.discount_value}% OFF`
+                              : `$${discount.discount_value} OFF`}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <Badge bg="primary" className="price-badge">
+                          ${product.price}
+                        </Badge>
+                      )}
+                      {product.stock <= 0 ? (
+                        <Badge bg="danger" className="stock-badge">Out of Stock</Badge>
+                      ) : product.stock <= 5 ? (
+                        <Badge bg="warning" text="dark" className="stock-badge low-stock-badge">
+                          <FaExclamationTriangle className="me-1" /> Only {product.stock} left
+                        </Badge>
+                      ) : (
+                        <Badge bg="secondary" className="stock-badge">Stock: {product.stock}</Badge>
+                      )}
+                    </div>
+                    <div className="d-flex gap-2 mt-3">
+                      <Button 
+                        variant="outline-secondary" 
+                        className="flex-grow-1"
+                        onClick={() => handleViewDetails(product.id)}
+                      >
+                        View Details
+                      </Button>
+                      <Button 
+                        variant="outline-primary" 
+                        className="flex-grow-1"
+                        onClick={() => addToCart({...product, price: finalPrice})}
+                        disabled={product.stock <= 0}
+                      >
+                        {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            );
+          })}
         </Row>
       )}
     </Container>

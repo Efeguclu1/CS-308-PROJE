@@ -130,6 +130,72 @@ const sendInvoiceEmail = async (options) => {
   }
 };
 
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
+  }
+});
+
+async function sendDiscountNotification(email, name, productName, discountType, discountValue) {
+  const subject = 'New Discount Available!';
+  const discountText = discountType === 'percentage' 
+    ? `${discountValue}% off` 
+    : `$${discountValue} off`;
+  
+  const html = `
+    <h2>Hello ${name},</h2>
+    <p>Great news! A new discount is available for a product in your wishlist.</p>
+    <p><strong>Product:</strong> ${productName}</p>
+    <p><strong>Discount:</strong> ${discountText}</p>
+    <p>Hurry up and check it out before the offer ends!</p>
+    <p>Best regards,<br>Your Online Store Team</p>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject,
+      html
+    });
+    console.log(`Discount notification sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
+}
+
+async function sendPriceApprovalNotification(email, name, productName, price) {
+  const subject = 'Product Price Approved';
+  const html = `
+    <h2>Hello ${name},</h2>
+    <p>The price for a product in your wishlist has been approved.</p>
+    <p><strong>Product:</strong> ${productName}</p>
+    <p><strong>Price:</strong> $${price}</p>
+    <p>You can now purchase this product!</p>
+    <p>Best regards,<br>Your Online Store Team</p>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject,
+      html
+    });
+    console.log(`Price approval notification sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
+}
+
 module.exports = {
-  sendInvoiceEmail
+  sendInvoiceEmail,
+  sendDiscountNotification,
+  sendPriceApprovalNotification
 }; 

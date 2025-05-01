@@ -48,9 +48,7 @@ const NavigationBar = () => {
 
   // Navigate to category products
   const navigateToCategory = (categoryId, categoryName) => {
-    console.log(`Navigating to category: ${categoryName} with ID: ${categoryId}`);
     if (!categoryId) {
-      console.warn(`No category ID found for: ${categoryName}, defaulting to all products`);
       navigate('/products');
     } else {
       navigate(`/products?category=${categoryId}`, { state: { categoryName } });
@@ -58,25 +56,57 @@ const NavigationBar = () => {
     setExpanded(false);
   };
 
-  // Map category name to id for the hardcoded navigation
-  const getCategoryMapping = () => {
-    const mapping = {
-      "computers": categories.find(c => c.name === "Computers")?.id,
-      "phones": categories.find(c => c.name === "Phones")?.id,
-      "tv": categories.find(c => c.name === "TV & Display")?.id,
-      "audio": categories.find(c => c.name === "Audio")?.id,
-      "accessories": categories.find(c => c.name === "Accessories")?.id,
-      "gaming": categories.find(c => c.name === "Gaming")?.id,
-      "wearables": categories.find(c => c.name === "Wearable Technology")?.id,
-    };
-    console.log("Category mapping:", mapping);
-    return mapping;
+  const renderUserMenu = () => {
+    if (!user) {
+      return (
+        <Nav.Link as={Link} to="/login" className="nav-link">
+          <i className="bi bi-person"></i> Login
+        </Nav.Link>
+      );
+    }
+
+    if (user.role === 'product_manager') {
+      return (
+        <NavDropdown title={<span><i className="bi bi-person-circle"></i> Product Manager</span>} id="admin-nav-dropdown">
+          <NavDropdown.Item as={Link} to="/admin/review-approval">Review Approval</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/admin/order-processing">Order Processing</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/admin/product-management">Product Management</NavDropdown.Item>
+          <NavDropdown.Divider />
+          <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+          <NavDropdown.Divider />
+          <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
+        </NavDropdown>
+      );
+    }
+
+    if (user.role === 'sales_manager') {
+      return (
+        <NavDropdown title={<span><i className="bi bi-person-circle"></i> Sales Manager</span>} id="sales-nav-dropdown">
+          <NavDropdown.Item as={Link} to="/product-approval">Price Approval</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/discount-management">Discount Management</NavDropdown.Item>
+          <NavDropdown.Divider />
+          <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+          <NavDropdown.Divider />
+          <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
+        </NavDropdown>
+      );
+    }
+
+    // Regular customer menu
+    return (
+      <NavDropdown title={<span><i className="bi bi-person-circle"></i> My Account</span>} id="user-nav-dropdown">
+        <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
+        <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+        <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+        <NavDropdown.Divider />
+        <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
+      </NavDropdown>
+    );
   };
-
-  const categoryMapping = getCategoryMapping();
-
-  // Check if user is a product manager
-  const isProductManager = user && user.role === 'product_manager';
 
   return (
     <>
@@ -106,50 +136,7 @@ const NavigationBar = () => {
                 <i className="bi bi-grid"></i> Products
               </Nav.Link>
               
-              {user ? (
-                <>
-                  <NavDropdown 
-                    title={
-                      <span>
-                        <i className="bi bi-person-circle"></i> {user.name}
-                      </span>
-                    } 
-                    id="user-dropdown"
-                  >
-                    <NavDropdown.Item as={Link} to="/orders">
-                      <i className="bi bi-box"></i> My Orders
-                    </NavDropdown.Item>
-                    <NavDropdown.Item as={Link} to="/wishlist">
-                      <i className="bi bi-heart"></i> My Wishlist
-                    </NavDropdown.Item>
-                    <NavDropdown.Item as={Link} to="/profile">
-                      <i className="bi bi-person"></i> Profile
-                    </NavDropdown.Item>
-                    {isProductManager && (
-                      <>
-                        <NavDropdown.Divider />
-                        <NavDropdown.Item as={Link} to="/admin/review-approval">
-                          <i className="bi bi-check-square"></i> Review Approval
-                        </NavDropdown.Item>
-                        <NavDropdown.Item as={Link} to="/admin/order-processing">
-                          <i className="bi bi-truck"></i> Order Processing
-                        </NavDropdown.Item>
-                        <NavDropdown.Item as={Link} to="/admin/product-management">
-                          <i className="bi bi-box-seam"></i> Product Management
-                        </NavDropdown.Item>
-                      </>
-                    )}
-                    <NavDropdown.Divider />
-                    <NavDropdown.Item onClick={handleLogout}>
-                      <i className="bi bi-box-arrow-right"></i> Logout
-                    </NavDropdown.Item>
-                  </NavDropdown>
-                </>
-              ) : (
-                <Nav.Link as={Link} to="/login" className="nav-link">
-                  <i className="bi bi-person"></i> Login
-                </Nav.Link>
-              )}
+              {renderUserMenu()}
               
               <Nav.Link as={Link} to="/cart" className="nav-link cart-link position-relative">
                 <div>
@@ -169,55 +156,16 @@ const NavigationBar = () => {
       <div className="categories-menu">
         <Container>
           <Nav className="categories-nav">
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.computers, "Computers")}
-              as="button"
-              className="text-button"
-            >
-              Computers
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.phones, "Phones")}
-              as="button"
-              className="text-button"
-            >
-              Phones
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.tv, "TV & Display")}
-              as="button"
-              className="text-button"
-            >
-              TV & Display
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.audio, "Audio")}
-              as="button"
-              className="text-button"
-            >
-              Audio
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.accessories, "Accessories")}
-              as="button"
-              className="text-button"
-            >
-              Accessories
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.gaming, "Gaming")}
-              as="button"
-              className="text-button"
-            >
-              Gaming
-            </Nav.Link>
-            <Nav.Link 
-              onClick={() => navigateToCategory(categoryMapping.wearables, "Wearable Technology")}
-              as="button"
-              className="text-button"
-            >
-              Wearable Technology
-            </Nav.Link>
+            {categories.map(category => (
+              <Nav.Link
+                key={category.id}
+                onClick={() => navigateToCategory(category.id, category.name)}
+                as="button"
+                className="text-button"
+              >
+                {category.name}
+              </Nav.Link>
+            ))}
           </Nav>
         </Container>
       </div>

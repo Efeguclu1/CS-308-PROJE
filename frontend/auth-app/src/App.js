@@ -25,6 +25,8 @@ import { setupAxiosInterceptors } from './utils/auth';
 import axios from 'axios';
 import CheckoutRegister from "./pages/CheckoutRegister";
 import Wishlist from './pages/Wishlist';
+import ProductApproval from './pages/ProductApproval';
+import DiscountManagement from './pages/DiscountManagement';
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -96,6 +98,16 @@ function App() {
               <Route path="/admin/product-management" element={
                 <ProtectedRoute requiredRole="product_manager">
                   <ProductManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/product-approval" element={
+                <ProtectedRoute requiredRole="sales_manager">
+                  <ProductApproval />
+                </ProtectedRoute>
+              } />
+              <Route path="/discount-management" element={
+                <ProtectedRoute requiredRole="sales_manager">
+                  <DiscountManagement />
                 </ProtectedRoute>
               } />
             </Routes>

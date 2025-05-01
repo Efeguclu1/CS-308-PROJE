@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 const verifyToken = require("../middleware/auth");
+const { sendPriceApprovalNotification } = require('../utils/emailService');
 
 // Get all products
 router.get("/", (req, res) => {
@@ -187,20 +188,24 @@ router.post("/admin/create", verifyToken, (req, res) => {
       return res.status(400).json({ error: "Category is required." });
     }
     
-    // Always set new products to invisible (0)
+    // Always set new products to invisible (0) and price_approved to FALSE
     const visibilityValue = 0;
+    const priceApprovedValue = 0;
     
     const query = `
       INSERT INTO products 
-      (name, model, serial_number, description, stock, price, warranty_months, distributor_info, category_id, visible) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (name, model, serial_number, description, stock, price, warranty_months, 
+       distributor_info, category_id, visible, price_approved) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    console.log("Executing query with params:", [name, model, serial_number, description, stock, priceValue, warranty_months, distributor_info, category_id, visibilityValue]);
+    console.log("Executing query with params:", [name, model, serial_number, description, stock, 
+      priceValue, warranty_months, distributor_info, category_id, visibilityValue, priceApprovedValue]);
     
     db.query(
       query,
-      [name, model, serial_number, description, stock, priceValue, warranty_months, distributor_info, category_id, visibilityValue],
+      [name, model, serial_number, description, stock, priceValue, warranty_months, 
+       distributor_info, category_id, visibilityValue, priceApprovedValue],
       (err, results) => {
         if (err) {
           console.error('Insert error details:', err);
@@ -429,6 +434,92 @@ router.get("/:id", (req, res) => {
     }
     res.json(results[0]);
   });
+});
+
+// Get unapproved products (for sales managers)
+router.get('/unapproved', async (req, res) => {
+  if (!req.user || req.user.role !== 'sales_manager') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const [products] = await db.promise().query(
+      'SELECT * FROM products WHERE price_approved = FALSE'
+    );
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching unapproved products:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Approve and set price for a product
+router.patch('/:id/approve', async (req, res) => {
+  if (!req.user || req.user.role !== 'sales_manager') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  const { id } = req.params;
+  const { price } = req.body;
+
+  if (!price || price <= 0) {
+    return res.status(400).json({ error: 'Invalid price' });
+  }
+
+  try {
+    await db.promise().query(
+      'UPDATE products SET price = ?, price_approved = TRUE WHERE id = ?',
+      [price, id]
+    );
+
+    // Get product name for notification
+    const [product] = await db.promise().query(
+      'SELECT name FROM products WHERE id = ?',
+      [id]
+    );
+
+    // Notify users who have this product in their wishlist
+    const [wishlistUsers] = await db.promise().query(
+      `SELECT DISTINCT u.email, u.name 
+       FROM wishlist w 
+       JOIN users u ON w.user_id = u.id 
+       WHERE w.product_id = ?`,
+      [id]
+    );
+
+    // Send notifications to all users who have this product in their wishlist
+    for (const user of wishlistUsers) {
+      try {
+        await sendPriceApprovalNotification(
+          user.email,
+          user.name,
+          product[0].name,
+          price
+        );
+      } catch (error) {
+        console.error(`Failed to send notification to ${user.email}:`, error);
+        // Continue with other users even if one fails
+      }
+    }
+
+    res.json({ message: 'Product price approved successfully' });
+  } catch (error) {
+    console.error('Error approving product:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Modify product listing to only show approved products
+router.get('/', async (req, res) => {
+  try {
+    const [products] = await db.promise().query(
+      'SELECT * FROM products WHERE price_approved = TRUE'
+    );
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

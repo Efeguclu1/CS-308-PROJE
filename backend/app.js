@@ -30,6 +30,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const ratingRoutes = require("./routes/ratingRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
+const discountRoutes = require('./routes/discountRoutes');
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
@@ -61,11 +62,10 @@ app.use("/api/products", productRoutes);
 // Protected routes
 app.use("/api/payment", verifyToken, paymentRoutes);
 app.use("/api/orders", verifyToken, orderRoutes);
-app.use("/api/ratings", ratingRoutes);
-app.use("/api/wishlist", wishlistRoutes);
-
-// Restore the app.use for invoiceRoutes with verifyToken
+app.use("/api/ratings", verifyToken, ratingRoutes);
+app.use("/api/wishlist", verifyToken, wishlistRoutes);
 app.use("/api/invoices", verifyToken, invoiceRoutes);
+app.use("/api/discounts", verifyToken, discountRoutes);
 
 // 404 handler
 app.use((req, res, next) => {
