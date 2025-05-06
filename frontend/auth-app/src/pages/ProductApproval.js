@@ -83,7 +83,7 @@ const ProductApproval = () => {
       
       setShowModal(false);
       setError('');
-      setSuccess(`Product price ${selectedProduct.price_approved ? 'updated' : 'set'} successfully!`);
+      setSuccess(`Product price ${selectedProduct.price_approved ? 'updated' : 'set'} successfully and product is now visible to customers!`);
       fetchAllProductsForSales();
     } catch (err) {
       console.error('Error setting/updating price:', err.response?.status, err.response?.data);
@@ -121,7 +121,7 @@ const ProductApproval = () => {
               <th>Model</th>
               <th>Category</th>
               <th>Current Price</th>
-              <th>Status</th>
+              <th>Price & Visibility Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -134,9 +134,14 @@ const ProductApproval = () => {
                 <td>{product.category_name || 'Uncategorized'}</td>
                 <td>{product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'Not Set'}</td>
                 <td>
-                  <Badge bg={product.price_approved ? 'success' : 'warning'}>
+                  <Badge bg={product.price_approved ? 'success' : 'warning'} className="me-2">
                     {product.price_approved ? 'Approved' : 'Needs Price'}
                   </Badge>
+                  {product.visible === 1 ? (
+                    <Badge bg="success">Visible</Badge>
+                  ) : (
+                    <Badge bg="secondary">Hidden</Badge>
+                  )}
                 </td>
                 <td>
                   <Button

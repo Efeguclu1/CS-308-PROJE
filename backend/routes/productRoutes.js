@@ -171,6 +171,7 @@ router.post("/admin/create", verifyToken, (req, res) => {
       description = "", 
       stock = 0,
       price, 
+      cost = null,
       warranty_months = 0, 
       distributor_info = "", 
       category_id 
@@ -178,6 +179,9 @@ router.post("/admin/create", verifyToken, (req, res) => {
     
     // Handle price specially - convert empty string or 0 to NULL for MySQL
     const priceValue = (price === '' || price === 0 || price === '0' || price === undefined) ? null : price;
+    
+    // Handle cost - could be null (using default 50% calculation) or a custom value
+    const costValue = (cost === '' || cost === 0 || cost === '0' || cost === undefined) ? null : cost;
     
     // Validate required fields
     if (!name) {
@@ -194,17 +198,17 @@ router.post("/admin/create", verifyToken, (req, res) => {
     
     const query = `
       INSERT INTO products 
-      (name, model, serial_number, description, stock, price, warranty_months, 
+      (name, model, serial_number, description, stock, price, cost, warranty_months, 
        distributor_info, category_id, visible, price_approved) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     console.log("Executing query with params:", [name, model, serial_number, description, stock, 
-      priceValue, warranty_months, distributor_info, category_id, visibilityValue, priceApprovedValue]);
+      priceValue, costValue, warranty_months, distributor_info, category_id, visibilityValue, priceApprovedValue]);
     
     db.query(
       query,
-      [name, model, serial_number, description, stock, priceValue, warranty_months, 
+      [name, model, serial_number, description, stock, priceValue, costValue, warranty_months, 
        distributor_info, category_id, visibilityValue, priceApprovedValue],
       (err, results) => {
         if (err) {
@@ -231,27 +235,29 @@ router.put("/admin/:id", verifyToken, (req, res) => {
   }
   
   const productId = req.params.id;
-  const { name, model, serial_number, description, stock, price, warranty_months, distributor_info, category_id, visible } = req.body;
+  const { name, model, serial_number, description, stock, price, cost, warranty_months, distributor_info, category_id, visible } = req.body;
   
   // Handle price specially - convert empty string or 0 to NULL
   const priceValue = (price === '' || price === 0 || price === '0' || price === undefined) ? null : price;
   
+  // Handle cost - could be null (using default 50% calculation) or a custom value
+  const costValue = (cost === '' || cost === 0 || cost === '0' || cost === undefined) ? null : cost;
+  
   // Different logic based on user role
-  let updateFields = {};
   let queryParams = [];
   let query = '';
   
   if (req.user.role === 'product_manager') {
-    // Product managers can update everything except price and visibility is controlled by rules
+    // Product managers can update everything except price and visibility
     query = `
       UPDATE products 
       SET name = ?, model = ?, serial_number = ?, description = ?, stock = ?, 
-          warranty_months = ?, distributor_info = ?, category_id = ?
+          cost = ?, warranty_months = ?, distributor_info = ?, category_id = ?
       WHERE id = ?
     `;
     queryParams = [
       name, model, serial_number, description, stock, 
-      warranty_months, distributor_info, category_id, productId
+      costValue, warranty_months, distributor_info, category_id, productId
     ];
   } else if (req.user.role === 'sales_manager') {
     // Sales managers can update price and visibility
@@ -507,9 +513,9 @@ router.patch('/:id/approve', verifyToken, (req, res) => {
   const priceValue = parseFloat(price);
   console.log(`Setting price for product ID ${id} to $${priceValue.toFixed(2)}`);
 
-  // Update product price and set as approved
+  // Update product price, set as approved, and make product visible
   db.query(
-    'UPDATE products SET price = ?, price_approved = TRUE WHERE id = ?',
+    'UPDATE products SET price = ?, price_approved = TRUE, visible = 1 WHERE id = ?',
     [priceValue, id],
     (err, results) => {
       if (err) {
@@ -522,8 +528,8 @@ router.patch('/:id/approve', verifyToken, (req, res) => {
         return res.status(404).json({ error: 'Product not found.' });
       }
       
-      console.log(`Successfully updated price for product ID ${id}`);
-      res.json({ message: 'Product price approved successfully' });
+      console.log(`Successfully updated price for product ID ${id} and set to visible`);
+      res.json({ message: 'Product price approved and set to visible successfully' });
       
       // Get product information for notifications (if needed)
       db.query('SELECT name FROM products WHERE id = ?', [id], (err, productResults) => {
