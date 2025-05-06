@@ -27,6 +27,7 @@ import CheckoutRegister from "./pages/CheckoutRegister";
 import Wishlist from './pages/Wishlist';
 import ProductApproval from './pages/ProductApproval';
 import DiscountManagement from './pages/DiscountManagement';
+import RevenueDashboard from './pages/RevenueDashboard';
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -108,6 +109,11 @@ function App() {
               <Route path="/discount-management" element={
                 <ProtectedRoute requiredRole="sales_manager">
                   <DiscountManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/revenue-dashboard" element={
+                <ProtectedRoute requiredRole="sales_manager">
+                  <RevenueDashboard />
                 </ProtectedRoute>
               } />
             </Routes>

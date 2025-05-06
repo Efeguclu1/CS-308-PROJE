@@ -31,6 +31,7 @@ const ratingRoutes = require("./routes/ratingRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const discountRoutes = require('./routes/discountRoutes');
+const revenueRoutes = require('./routes/revenueRoutes');
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
@@ -66,6 +67,7 @@ app.use("/api/ratings", verifyToken, ratingRoutes);
 app.use("/api/wishlist", verifyToken, wishlistRoutes);
 app.use("/api/invoices", verifyToken, invoiceRoutes);
 app.use("/api/discounts", verifyToken, discountRoutes);
+app.use("/api/revenue", verifyToken, revenueRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

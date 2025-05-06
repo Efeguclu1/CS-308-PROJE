@@ -33,6 +33,7 @@ const ProductManagement = () => {
     description: '',
     stock: 0,
     price: '',
+    cost: '',
     warranty_months: 0,
     distributor_info: '',
     category_id: '',
@@ -153,6 +154,7 @@ const ProductManagement = () => {
       description: '',
       stock: 0,
       price: '',
+      cost: '',
       warranty_months: 0,
       distributor_info: '',
       category_id: '',
@@ -177,6 +179,7 @@ const ProductManagement = () => {
       description: product.description || '',
       stock: product.stock || 0,
       price: product.price || '',
+      cost: product.cost || '',
       warranty_months: product.warranty_months || 0,
       distributor_info: product.distributor_info || '',
       category_id: product.category_id || '',
@@ -273,7 +276,9 @@ const ProductManagement = () => {
         stock: parseInt(productDataWithoutVisibility.stock) || 0,
         warranty_months: parseInt(productDataWithoutVisibility.warranty_months) || 0,
         // Handle price specially - backend will convert empty string, 0, or undefined to NULL
-        price: productDataWithoutVisibility.price === '' ? null : productDataWithoutVisibility.price
+        price: productDataWithoutVisibility.price === '' ? null : productDataWithoutVisibility.price,
+        // Handle cost specially - backend will convert empty string, 0, or undefined to NULL
+        cost: productDataWithoutVisibility.cost === '' ? null : productDataWithoutVisibility.cost
       };
       
       console.log("Submitting product data:", formattedData);
@@ -801,48 +806,36 @@ const ProductManagement = () => {
                     name="stock"
                     value={productFormData.stock}
                     onChange={handleInputChange}
-                    isInvalid={!!formErrors.stock}
                     min="0"
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {formErrors.stock}
-                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={4}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Price</Form.Label>
-                  <InputGroup>
-                    <InputGroup.Text>$</InputGroup.Text>
-                    <Form.Control
-                      type="number"
-                      step="0.01"
-                      name="price"
-                      value=""
-                      placeholder="Set by Sales Manager"
-                      disabled={true}
-                      readOnly={true}
-                    />
-                  </InputGroup>
-                  <Form.Text className="text-muted">
-                    Prices are set by Sales Managers only, not Product Managers.
-                  </Form.Text>
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Warranty (months)</Form.Label>
+                  <Form.Label>Warranty (Months)</Form.Label>
                   <Form.Control
                     type="number"
                     name="warranty_months"
                     value={productFormData.warranty_months}
                     onChange={handleInputChange}
-                    isInvalid={!!formErrors.warranty_months}
                     min="0"
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {formErrors.warranty_months}
-                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Cost (Optional)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="cost"
+                    value={productFormData.cost || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                  />
+                  <Form.Text className="text-muted">
+                    Custom cost (if different from 50% of price)
+                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>

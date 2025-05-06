@@ -86,6 +86,7 @@ const NavigationBar = () => {
         <NavDropdown title={<span><i className="bi bi-person-circle"></i> Sales Manager</span>} id="sales-nav-dropdown">
           <NavDropdown.Item as={Link} to="/product-approval">Price Approval</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/discount-management">Discount Management</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/revenue-dashboard">Revenue Dashboard</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
