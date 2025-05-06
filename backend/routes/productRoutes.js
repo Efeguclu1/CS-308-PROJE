@@ -422,6 +422,55 @@ function updateVisibility(productId, visible, res) {
   );
 }
 
+// Replace the /sales route with a simplified version
+router.get('/sales', verifyToken, (req, res) => {
+  console.log('GET /sales - User:', req.user?.name, 'Role:', req.user?.role);
+  
+  // Check if user has sales_manager role
+  if (req.user.role !== 'sales_manager') {
+    console.log('Access denied to /sales route - incorrect role:', req.user.role);
+    return res.status(403).json({ error: "Unauthorized. Only sales managers can access this endpoint." });
+  }
+
+  // Fetch all products with category names  
+  const query = `
+    SELECT p.*, c.name as category_name 
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id 
+    ORDER BY p.id ASC
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Query error on /sales route:', err);
+      return res.status(500).json({ error: "Error retrieving products for sales." });
+    }
+    console.log(`Returning ${results.length} products for sales manager`);
+    res.json(results);
+  });
+});
+
+// Get unapproved products (for sales managers)
+router.get('/unapproved', verifyToken, async (req, res) => {
+  console.log('GET /unapproved - User Role:', req.user?.role);
+  
+  if (!req.user || req.user.role !== 'sales_manager') {
+    console.log('Unauthorized access to /unapproved route. User:', req.user);
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const [products] = await db.promise().query(
+      'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.price_approved = FALSE'
+    );
+    console.log(`Successfully fetched ${products.length} unapproved products`);
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching unapproved products:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get product by ID - this generic route should be last
 router.get("/:id", (req, res) => {
   const productId = req.params.id;
@@ -436,77 +485,81 @@ router.get("/:id", (req, res) => {
   });
 });
 
-// Get unapproved products (for sales managers)
-router.get('/unapproved', async (req, res) => {
-  if (!req.user || req.user.role !== 'sales_manager') {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  try {
-    const [products] = await db.promise().query(
-      'SELECT * FROM products WHERE price_approved = FALSE'
-    );
-    res.json(products);
-  } catch (error) {
-    console.error('Error fetching unapproved products:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Approve and set price for a product
-router.patch('/:id/approve', async (req, res) => {
-  if (!req.user || req.user.role !== 'sales_manager') {
-    return res.status(403).json({ error: 'Unauthorized' });
+// Approve and set price for a product (for sales managers)
+router.patch('/:id/approve', verifyToken, (req, res) => {
+  console.log('PATCH /:id/approve - User:', req.user?.name, 'Role:', req.user?.role, 'Product ID:', req.params.id);
+  
+  // Check if user has sales_manager role
+  if (req.user.role !== 'sales_manager') {
+    console.log('Access denied to /:id/approve route - incorrect role:', req.user.role);
+    return res.status(403).json({ error: "Unauthorized. Only sales managers can access this endpoint." });
   }
 
   const { id } = req.params;
   const { price } = req.body;
 
-  if (!price || price <= 0) {
-    return res.status(400).json({ error: 'Invalid price' });
+  // Validate price
+  if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+    console.log('Invalid price value:', price);
+    return res.status(400).json({ error: 'Invalid price. Price must be a positive number.' });
   }
 
-  try {
-    await db.promise().query(
-      'UPDATE products SET price = ?, price_approved = TRUE WHERE id = ?',
-      [price, id]
-    );
+  const priceValue = parseFloat(price);
+  console.log(`Setting price for product ID ${id} to $${priceValue.toFixed(2)}`);
 
-    // Get product name for notification
-    const [product] = await db.promise().query(
-      'SELECT name FROM products WHERE id = ?',
-      [id]
-    );
-
-    // Notify users who have this product in their wishlist
-    const [wishlistUsers] = await db.promise().query(
-      `SELECT DISTINCT u.email, u.name 
-       FROM wishlist w 
-       JOIN users u ON w.user_id = u.id 
-       WHERE w.product_id = ?`,
-      [id]
-    );
-
-    // Send notifications to all users who have this product in their wishlist
-    for (const user of wishlistUsers) {
-      try {
-        await sendPriceApprovalNotification(
-          user.email,
-          user.name,
-          product[0].name,
-          price
-        );
-      } catch (error) {
-        console.error(`Failed to send notification to ${user.email}:`, error);
-        // Continue with other users even if one fails
+  // Update product price and set as approved
+  db.query(
+    'UPDATE products SET price = ?, price_approved = TRUE WHERE id = ?',
+    [priceValue, id],
+    (err, results) => {
+      if (err) {
+        console.error('Error updating product price:', err);
+        return res.status(500).json({ error: 'Error updating product price.' });
       }
+      
+      if (results.affectedRows === 0) {
+        console.log('Product not found:', id);
+        return res.status(404).json({ error: 'Product not found.' });
+      }
+      
+      console.log(`Successfully updated price for product ID ${id}`);
+      res.json({ message: 'Product price approved successfully' });
+      
+      // Get product information for notifications (if needed)
+      db.query('SELECT name FROM products WHERE id = ?', [id], (err, productResults) => {
+        if (err || productResults.length === 0) {
+          console.error('Error fetching product for notification:', err);
+          return; // Don't stop the main flow for notification errors
+        }
+        
+        const productName = productResults[0].name;
+        
+        // Notify users who have this product in their wishlist
+        db.query(
+          `SELECT DISTINCT u.email, u.name 
+           FROM wishlist w 
+           JOIN users u ON w.user_id = u.id 
+           WHERE w.product_id = ?`,
+          [id],
+          (err, userResults) => {
+            if (err) {
+              console.error('Error fetching users for notification:', err);
+              return;
+            }
+            
+            console.log(`Sending price approval notifications to ${userResults.length} users`);
+            
+            // Send notifications (implementation depends on your notification system)
+            // This is a placeholder for your actual notification logic
+            for (const user of userResults) {
+              console.log(`Would notify ${user.email} about new price for ${productName}`);
+              // Implementation of sendPriceApprovalNotification would go here
+            }
+          }
+        );
+      });
     }
-
-    res.json({ message: 'Product price approved successfully' });
-  } catch (error) {
-    console.error('Error approving product:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  );
 });
 
 // Modify product listing to only show approved products

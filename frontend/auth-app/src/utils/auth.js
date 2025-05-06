@@ -57,11 +57,12 @@ export const setupAxiosInterceptors = (axios) => {
       const token = getToken();
       if (token) {
         console.log(`Adding token to request: ${config.url}`);
-        // Make sure Authorization header is properly formatted
+        // Make sure Authorization header is properly formatted with Bearer prefix
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Request headers:', config.headers);
+        // Log a preview of the token for debugging
+        console.log(`Token preview: ${token.substring(0, 15)}...`);
       } else {
-        console.warn(`No token available for request: ${config.url}`);
+        console.warn(`⚠️ No token available for request: ${config.url}`);
       }
       return config;
     },
@@ -73,11 +74,18 @@ export const setupAxiosInterceptors = (axios) => {
 
   // Response interceptor for handling token expiration
   axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      console.log(`Response successful for ${response.config.url}`);
+      return response;
+    },
     (error) => {
-      console.error('Response interceptor caught error:', error.message);
+      console.error(`Response error for ${error.config?.url || 'unknown URL'}:`, error.message);
+      console.error('Status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
       
       if (error.response?.status === 401) {
+        console.warn('Authentication error: Token missing or invalid');
+        
         // Get the request URL to determine if it's a protected route
         const requestUrl = error.config?.url || '';
         
@@ -99,7 +107,10 @@ export const setupAxiosInterceptors = (axios) => {
         } else {
           console.log('401 on public endpoint, not redirecting:', requestUrl);
         }
+      } else if (error.response?.status === 403) {
+        console.warn('Authorization error: Insufficient permissions');
       }
+      
       return Promise.reject(error);
     }
   );
