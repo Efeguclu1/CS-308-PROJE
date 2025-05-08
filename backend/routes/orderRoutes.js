@@ -309,7 +309,62 @@ router.patch('/:orderId/cancel', async (req, res) => {
         error: 'Order not found' 
       });
     }
+    router.post('/orders/:id/refund', (req, res) => {
+      const orderId = req.params.id;
     
+      const query = 'SELECT status FROM orders WHERE id = ?';
+      db.query(query, [orderId], (err, results) => {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        if (results.length === 0) return res.status(404).json({ error: 'Order not found' });
+    
+        const status = results[0].status;
+        if (status !== 'delivered') {
+          return res.status(400).json({ error: 'Only delivered orders can be refunded' });
+        }
+    
+        const update = 'UPDATE orders SET status = ? WHERE id = ?';
+        db.query(update, ['refunded', orderId], (err2) => {
+          if (err2) return res.status(500).json({ error: 'Refund failed' });
+          return res.status(200).json({ message: 'Order refunded successfully' });
+        });
+    
+        // İsteğe bağlı log
+        const order = results[0];
+        console.log('Order details:', order);
+      });
+    });
+    // Sipariş oluştur
+router.post("/create", async (req, res) => {
+  const { user_id, items, total_amount, delivery_address } = req.body;
+
+  if (!user_id || !items || items.length === 0 || !total_amount || !delivery_address) {
+    return res.status(400).json({ error: "Eksik sipariş bilgisi" });
+  }
+
+  try {
+    // Siparişi oluştur
+    const [orderResult] = await db.promise().query(
+      "INSERT INTO orders (user_id, total_amount, status, delivery_address) VALUES (?, ?, 'processing', ?)",
+      [user_id, total_amount, delivery_address]
+    );
+
+    const orderId = orderResult.insertId;
+
+    // Sipariş ürünlerini ekle
+    for (const item of items) {
+      await db.promise().query(
+        "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+        [orderId, item.product_id, item.quantity, item.price]
+      );
+    }
+
+    res.status(201).json({ success: true, message: "Sipariş oluşturuldu", orderId });
+  } catch (err) {
+    console.error("Sipariş oluşturulurken hata:", err);
+    res.status(500).json({ error: "Sipariş oluşturulamadı" });
+  }
+});
+
     const order = orders[0];
     console.log('Order details:', order);
     console.log('Current user ID:', req.user.id, '(type:', typeof req.user.id, ')');
@@ -400,5 +455,41 @@ router.patch('/:orderId/cancel', async (req, res) => {
     });
   }
 });
+// Delivered durumundaki siparişi refund et (kısa yol)
+router.post('/:id/refund', async (req, res) => {
+  const orderId = req.params.id;
+
+  try {
+    // Siparişi kontrol et
+    const [orders] = await db.promise().query(
+      'SELECT * FROM orders WHERE id = ?',
+      [orderId]
+    );
+
+    if (orders.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const order = orders[0];
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ error: 'Only delivered orders can be refunded' });
+    }
+
+    // Sipariş durumunu refunded yap
+    await db.promise().query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      ['refunded', orderId]
+    );
+
+    res.status(200).json({ message: 'Order refunded successfully' });
+  } catch (err) {
+    console.error('Refund error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Test: Sahte teslim edilmiş siparişi döndür
+
 
 module.exports = router; 

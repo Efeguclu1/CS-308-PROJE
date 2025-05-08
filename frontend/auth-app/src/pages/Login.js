@@ -68,6 +68,10 @@ const Login = () => {
       if (response && response.data) {
         // Login işlemini gerçekleştir
         login(response.data);
+        localStorage.setItem("token", response.data.token);
+        console.log("✅ Token saved to localStorage:", response.data.token);
+
+
         
         setMessage("Login successful! Redirecting...");
         setMessageType("success");

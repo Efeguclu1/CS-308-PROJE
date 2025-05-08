@@ -101,6 +101,11 @@ app.use("/api/ratings", ratingRoutes);
 const orderRoutes = require("./routes/orderRoutes");
 app.use("/api/orders", verifyToken, orderRoutes);
 
+const refundRoutes = require("./routes/refundRoutes");
+app.use("/api/refunds", refundRoutes);
+
+
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.stack);

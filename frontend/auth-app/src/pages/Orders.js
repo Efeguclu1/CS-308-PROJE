@@ -144,6 +144,27 @@ const Orders = () => {
       setCancellingOrder(prev => ({ ...prev, [orderId]: false }));
     }
   };
+  const handleRefundRequest = async (orderId) => {
+    try {
+      const token = getToken();
+      const userId = user.id;
+  
+      const res = await axios.post(`${API_BASE_URL}/refunds/request`, {
+        user_id: userId,
+        order_id: orderId,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      alert("Refund request sent!");
+    } catch (err) {
+      console.error("Refund request failed:", err);
+      alert(err.response?.data?.error || "Failed to send refund request.");
+    }
+  };
+  
 
   if (authLoading) {
     return (
@@ -299,6 +320,16 @@ const Orders = () => {
                                   'Cancel Order'
                                 )}
                               </Button>
+                            )}
+                            {order.status === 'delivered' && (
+                              <Button
+                                 variant="outline-warning"
+                                 size="sm"
+                                 className="mt-2 ms-2"
+                                 onClick={() => handleRefundRequest(order.id)}
+                                  >
+                                 Request Refund
+                                 </Button>
                             )}
                           </div>
                         </div>
