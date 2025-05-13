@@ -703,12 +703,9 @@ router.post("/create", async (req, res) => {
     });
   }
 });
-<<<<<<< HEAD
-=======
 <<<<<<< Updated upstream
 =======
 
->>>>>>> 75efcf1 (return refund update)
 // Delivered durumundaki siparişi refund et (kısa yol)
 router.post('/:id/refund', async (req, res) => {
   const orderId = req.params.id;
@@ -736,8 +733,6 @@ router.post('/:id/refund', async (req, res) => {
       ['refunded', orderId]
     );
 
-<<<<<<< HEAD
-=======
     // Restore product stock quantities - After refund status is updated
     try {
       console.log(`======= DIRECT REFUND STOCK UPDATE DEBUG (Order #${orderId}) =======`);
@@ -824,7 +819,6 @@ router.post('/:id/refund', async (req, res) => {
       console.error(`CRITICAL ERROR: Failed to update stock for directly refunded order #${orderId}. Manual intervention required.`);
     }
 
->>>>>>> 75efcf1 (return refund update)
     res.status(200).json({ message: 'Order refunded successfully' });
   } catch (err) {
     console.error('Refund error:', err);
@@ -832,10 +826,6 @@ router.post('/:id/refund', async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Test: Sahte teslim edilmiş siparişi döndür
-
-=======
 // Refund talep etme
 router.post('/:orderId/request-refund', async (req, res) => {
   const { orderId } = req.params;
@@ -1217,6 +1207,5 @@ router.patch('/:orderId/manage-refund', async (req, res) => {
 // Test: Sahte teslim edilmiş siparişi döndür
 
 >>>>>>> Stashed changes
->>>>>>> 75efcf1 (return refund update)
 
 module.exports = router; 
