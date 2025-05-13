@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const { sendOrderInTransitEmail, sendOrderDeliveredEmail, sendOrderCancelledEmail } = require('../utils/emailService');
 
 // Log all requests to this router
 router.use((req, res, next) => {
@@ -254,17 +255,62 @@ router.patch('/:orderId/status', async (req, res) => {
     });
   }
   
-  if (!['processing', 'in-transit', 'delivered'].includes(status)) {
+  if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status value' });
   }
+  
   try {
+    // First, get the current order information including previous status
+    const [orderResult] = await db.promise().query(
+      'SELECT o.*, u.email, u.name FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?',
+      [orderId]
+    );
+    
+    if (orderResult.length === 0) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    const order = orderResult[0];
+    const previousStatus = order.status;
+    
+    // Update the order status
     const [result] = await db.promise().query(
       'UPDATE orders SET status = ? WHERE id = ?',
       [status, orderId]
     );
+    
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
+    
+    // Send appropriate email notification based on the new status
+    try {
+      // Only send email if status has changed
+      if (status !== previousStatus) {
+        // Send in-transit notification
+        if (status === 'in-transit') {
+          await sendOrderInTransitEmail(order.email, order.name, order);
+          console.log(`In-transit email sent to ${order.email} for order #${orderId}`);
+        }
+        
+        // Send delivered notification
+        else if (status === 'delivered') {
+          await sendOrderDeliveredEmail(order.email, order.name, order);
+          console.log(`Delivered email sent to ${order.email} for order #${orderId}`);
+        }
+        
+        // Send cancellation notification
+        else if (status === 'cancelled') {
+          await sendOrderCancelledEmail(order.email, order.name, order);
+          console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending status update email:', emailError);
+      // We don't want to fail the request if email sending fails
+      // Just log the error and continue
+    }
+    
     res.json({ success: true, message: 'Order status updated', status });
   } catch (error) {
     console.error('Error updating order status:', error);
@@ -293,10 +339,10 @@ router.patch('/:orderId/cancel', async (req, res) => {
     // Test database connection first
     await db.promise().query('SELECT 1');
     
-    // Önce siparişi getir
+    // Önce siparişi getir (kullanıcı email ve isim bilgilerini de getir)
     console.log('Fetching order details...');
     const [orders] = await db.promise().query(
-      'SELECT * FROM orders WHERE id = ?',
+      'SELECT o.*, u.email, u.name FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?',
       [orderId]
     );
     
@@ -356,6 +402,18 @@ router.patch('/:orderId/cancel', async (req, res) => {
     if (updateResult.affectedRows === 0) {
       console.log('No rows affected by update');
       throw new Error('Failed to update order status');
+    }
+    
+    // Send cancellation email (email ve name değerleri artık mevcut)
+    try {
+      console.log(`Attempting to send email to ${order.email} for user ${order.name}`);
+      await sendOrderCancelledEmail(order.email, order.name, order);
+      console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
+    } catch (emailError) {
+      console.error('Error sending cancellation email:', emailError);
+      console.error('Email error details:', emailError.message);
+      // We don't want to fail the request if email sending fails
+      // Just log the error and continue
     }
     
     console.log('Order cancelled successfully');
