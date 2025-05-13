@@ -246,20 +246,17 @@ const OrderProcessing = () => {
       case 'processing':
         return 'primary';
       case 'in-transit':
-        return 'warning';
+        return 'info';
       case 'delivered':
         return 'success';
       case 'cancelled':
         return 'danger';
-<<<<<<< Updated upstream
-=======
       case 'refund-requested':
         return 'warning';
       case 'refund-approved':
         return 'success';
       case 'refund-denied':
         return 'danger';
->>>>>>> Stashed changes
       default:
         return 'secondary';
     }
@@ -295,33 +292,6 @@ const OrderProcessing = () => {
       {success && <Alert variant="success">{success}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
       
-<<<<<<< Updated upstream
-      <Card className="mb-4">
-        <Card.Body>
-          <Row>
-            <Col md={6}>
-              <Form.Group controlId="statusFilter" className="mb-3">
-                <Form.Label>Filter by Status</Form.Label>
-                <Form.Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">All Orders</option>
-                  <option value="processing">Processing</option>
-                  <option value="in-transit">In Transit</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={6} className="d-flex align-items-end">
-              <Button 
-                variant="outline-primary" 
-                onClick={() => fetchOrders()}
-                disabled={loading || authError}
-                className="mb-2"
-              >
-=======
       <Tab.Container activeKey={activeTab} onSelect={(key) => {
         setActiveTab(key);
         // When switching to refunds tab, fetch refund requests
@@ -378,7 +348,6 @@ const OrderProcessing = () => {
                   </Col>
                 </Row>
                 
->>>>>>> Stashed changes
                 {loading ? (
                   <div className="text-center my-5">
                     <Spinner animation="border" role="status">

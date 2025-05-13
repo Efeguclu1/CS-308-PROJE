@@ -141,22 +141,18 @@ const Orders = () => {
     setCancellingOrder(prev => ({ ...prev, [currentOrderId]: true }));
     
     try {
-      const response = await axios.patch(`${API_BASE_URL}/orders/${currentOrderId}/cancel`, {
-        cancellation_reason: cancellationReason.trim()
-      });
+      await axios.patch(`${API_BASE_URL}/orders/${currentOrderId}/cancel`);
       
-      if (response.data.success) {
-        // Update the order status in the local state
-        setOrders(prevOrders => prevOrders.map(order => 
-          order.id === currentOrderId 
-            ? { ...order, status: 'cancelled' } 
-            : order
-        ));
-        
-        setCancelSuccess('Order cancelled successfully');
-        setShowCancelModal(false);
-        setCancellationReason('');
-      }
+      // Update the order status in the local state
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.id === currentOrderId 
+          ? { ...order, status: 'cancelled' } 
+          : order
+      ));
+      
+      setCancelSuccess('Order cancelled successfully.');
+      setShowCancelModal(false);
+      setCancellationReason('');
     } catch (err) {
       console.error('Error cancelling order:', err);
       alert(err.response?.data?.error || 'Failed to cancel order');
@@ -164,8 +160,6 @@ const Orders = () => {
       setCancellingOrder(prev => ({ ...prev, [currentOrderId]: false }));
     }
   };
-<<<<<<< Updated upstream
-=======
 
   const handleRequestRefund = async () => {
     if (!currentOrderId || !refundReason.trim()) return;
@@ -316,7 +310,6 @@ const Orders = () => {
       </div>
     );
   };
->>>>>>> Stashed changes
 
   if (authLoading) {
     return (
@@ -433,63 +426,7 @@ const Orders = () => {
                             <h6 className="mb-2">Shipping Address:</h6>
                             <p className="text-muted mb-0">{order.delivery_address || 'Not specified'}</p>
                           </div>
-<<<<<<< Updated upstream
-                          <div className="mt-3">
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(order.id)}
-                              disabled={downloadingInvoice[order.id]}
-                              className="mt-2 me-2"
-                            >
-                              {downloadingInvoice[order.id] ? (
-                                <>
-                                  <Spinner 
-                                    as="span" 
-                                    animation="border" 
-                                    size="sm" 
-                                    role="status" 
-                                    aria-hidden="true" 
-                                    className="me-1"
-                                  />
-                                  Downloading...
-                                </>
-                              ) : (
-                                <>
-                                  <FaFileInvoice className="me-1" />
-                                  Download Invoice
-                                </>
-                              )}
-                            </Button>
-                            {order.status === 'processing' && (
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleCancelOrder(order.id)}
-                                disabled={cancellingOrder[order.id]}
-                                className="mt-2"
-                              >
-                                {cancellingOrder[order.id] ? (
-                                  <>
-                                    <Spinner 
-                                      as="span" 
-                                      animation="border" 
-                                      size="sm" 
-                                      role="status" 
-                                      aria-hidden="true" 
-                                      className="me-1"
-                                    />
-                                    Cancelling...
-                                  </>
-                                ) : (
-                                  'Cancel Order'
-                                )}
-                              </Button>
-                            )}
-                          </div>
-=======
                           {renderOrderActions(order)}
->>>>>>> Stashed changes
                         </div>
                       </Col>
                     </Row>
@@ -590,15 +527,12 @@ const getStatusBadgeClass = (status) => {
       return 'success';
     case 'cancelled':
       return 'danger';
-<<<<<<< Updated upstream
-=======
     case 'refund-requested':
       return 'warning';
     case 'refund-approved':
       return 'success';
     case 'refund-denied':
       return 'danger';
->>>>>>> Stashed changes
     default:
       return 'secondary';
   }

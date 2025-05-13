@@ -531,11 +531,8 @@ module.exports = {
   sendInvoiceEmail,
   sendDiscountNotification,
   sendPriceApprovalNotification,
-<<<<<<< Updated upstream
   sendOrderInTransitEmail,
   sendOrderDeliveredEmail,
-  sendOrderCancelledEmail
-=======
+  sendOrderCancelledEmail,
   sendOrderStatusEmail
->>>>>>> Stashed changes
 }; 
