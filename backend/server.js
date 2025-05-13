@@ -101,11 +101,22 @@ app.use("/api/ratings", ratingRoutes);
 const orderRoutes = require("./routes/orderRoutes");
 app.use("/api/orders", verifyToken, orderRoutes);
 
+<<<<<<< HEAD
 const refundRoutes = require("./routes/refundRoutes");
 app.use("/api/refunds", refundRoutes);
 
 
 
+=======
+<<<<<<< Updated upstream
+=======
+const refundRoutes = require("./routes/refundRoutes");
+app.use("/api/refunds", verifyToken, refundRoutes);
+
+
+
+>>>>>>> Stashed changes
+>>>>>>> 75efcf1 (return refund update)
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.stack);
