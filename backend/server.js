@@ -102,6 +102,7 @@ const orderRoutes = require("./routes/orderRoutes");
 app.use("/api/orders", verifyToken, orderRoutes);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const refundRoutes = require("./routes/refundRoutes");
 app.use("/api/refunds", refundRoutes);
 
@@ -117,6 +118,11 @@ app.use("/api/refunds", verifyToken, refundRoutes);
 
 >>>>>>> Stashed changes
 >>>>>>> 75efcf1 (return refund update)
+=======
+const refundRoutes = require("./routes/refundRoutes");
+app.use("/api/refunds", verifyToken, refundRoutes);
+
+>>>>>>> 6cad7f7 (merge fıx)
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.stack);
