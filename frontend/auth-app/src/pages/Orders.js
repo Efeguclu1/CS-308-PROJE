@@ -426,6 +426,11 @@ const Orders = () => {
                             <h6 className="mb-2">Shipping Address:</h6>
                             <p className="text-muted mb-0">{order.delivery_address || 'Not specified'}</p>
                           </div>
+                          {order.status === 'delivered' && order.delivered_at && (
+                            <p className="text-muted mb-1">
+                              <small>Delivered on: {formatDate(order.delivered_at)}</small>
+                            </p>
+                          )}
                           {renderOrderActions(order)}
                         </div>
                       </Col>
@@ -540,7 +545,7 @@ const getStatusBadgeClass = (status) => {
 
 // Helper function to format order status for display
 const formatOrderStatus = (status) => {
-  switch (status?.toLowerCase()) {
+  switch (status) {
     case 'processing':
       return 'Processing';
     case 'in-transit':
@@ -558,6 +563,17 @@ const formatOrderStatus = (status) => {
     default:
       return status;
   }
+};
+
+// Add this function to format dates
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 };
 
 export default Orders; 

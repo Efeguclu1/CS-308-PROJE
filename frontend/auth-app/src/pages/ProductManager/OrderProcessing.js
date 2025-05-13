@@ -125,6 +125,7 @@ const OrderProcessing = () => {
   const handleStatusChange = (order) => {
     setCurrentOrder(order);
     setSelectedStatus(order.status || 'processing');
+    setAdminNote(order.admin_note || '');
     setShowModal(true);
   };
 
@@ -132,13 +133,14 @@ const OrderProcessing = () => {
   const handleUpdateStatus = async () => {
     try {
       await axios.patch(`${API_BASE_URL}/orders/${currentOrder.id}/status`, {
-        status: selectedStatus
+        status: selectedStatus,
+        adminNote: adminNote
       });
       
       // Update the order in the local state
       setOrders(orders.map(order => 
         order.id === currentOrder.id 
-          ? { ...order, status: selectedStatus } 
+          ? { ...order, status: selectedStatus, admin_note: adminNote } 
           : order
       ));
       
@@ -500,24 +502,31 @@ const OrderProcessing = () => {
           <Modal.Title>Update Order Status</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {currentOrder && (
-            <>
-              <p><strong>Order ID:</strong> {currentOrder.id}</p>
-              <p><strong>Current Status:</strong> {currentOrder.status || 'Processing'}</p>
-              <Form.Group className="mb-3">
-                <Form.Label>Select New Status</Form.Label>
-                <Form.Select 
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <option value="processing">Processing</option>
-                  <option value="in-transit">In Transit</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </Form.Select>
-              </Form.Group>
-            </>
-          )}
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Order #{currentOrder?.id}</Form.Label>
+              <Form.Select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="processing">Processing</option>
+                <option value="in-transit">In Transit</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </Form.Select>
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Admin Note</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                placeholder="Add an admin note (optional)"
+              />
+            </Form.Group>
+          </Form>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowModal(false)}>
