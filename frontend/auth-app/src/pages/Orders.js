@@ -361,6 +361,8 @@ const getStatusBadgeClass = (status) => {
       return 'info';
     case 'delivered':
       return 'success';
+    case 'cancelled':
+      return 'danger';
     default:
       return 'secondary';
   }

@@ -130,6 +130,164 @@ const sendInvoiceEmail = async (options) => {
   }
 };
 
+/**
+ * Send an email notification when order status changes to in-transit
+ * @param {string} email - User's email address
+ * @param {string} name - User's name
+ * @param {Object} order - Order details
+ * @returns {Promise} - Result of email sending operation
+ */
+async function sendOrderInTransitEmail(email, name, order) {
+  console.log(`Sending in-transit notification to: ${email}`);
+  
+  const subject = `Order #${order.id} Update: Your Order is On Its Way!`;
+  
+  const html = `
+    <h2>Hello ${name},</h2>
+    <p>Great news! Your order #${order.id} has been shipped and is now on its way to you.</p>
+    <p>Here's a summary of your order:</p>
+    <ul>
+      <li><strong>Order ID:</strong> #${order.id}</li>
+      <li><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</li>
+      <li><strong>Status:</strong> In Transit</li>
+      <li><strong>Delivery Address:</strong> ${order.delivery_address}</li>
+    </ul>
+    <p>You will receive another notification when your order has been delivered.</p>
+    <p>Thank you for shopping with us!</p>
+    <p>Best regards,<br>Your Online Store Team</p>
+  `;
+
+  try {
+    const { transporter, isTestAccount, testAccount } = await createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
+      to: email,
+      subject,
+      html
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('In-transit email sent successfully:', info.messageId);
+    
+    if (isTestAccount) {
+      const messageUrl = nodemailer.getTestMessageUrl(info);
+      console.log('TEST EMAIL PREVIEW URL:', messageUrl);
+      info.messageUrl = messageUrl;
+    }
+    
+    return info;
+  } catch (error) {
+    console.error('Error sending in-transit email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send an email notification when order status changes to delivered
+ * @param {string} email - User's email address
+ * @param {string} name - User's name
+ * @param {Object} order - Order details
+ * @returns {Promise} - Result of email sending operation
+ */
+async function sendOrderDeliveredEmail(email, name, order) {
+  console.log(`Sending delivery notification to: ${email}`);
+  
+  const subject = `Order #${order.id} Update: Your Order Has Been Delivered!`;
+  
+  const html = `
+    <h2>Hello ${name},</h2>
+    <p>Your order #${order.id} has been delivered!</p>
+    <p>Here's a summary of your order:</p>
+    <ul>
+      <li><strong>Order ID:</strong> #${order.id}</li>
+      <li><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</li>
+      <li><strong>Status:</strong> Delivered</li>
+      <li><strong>Delivery Address:</strong> ${order.delivery_address}</li>
+    </ul>
+    <p>We hope you enjoy your purchase. If you have any questions or concerns about your order, please don't hesitate to contact us.</p>
+    <p>Thank you for shopping with us!</p>
+    <p>Best regards,<br>Your Online Store Team</p>
+  `;
+
+  try {
+    const { transporter, isTestAccount, testAccount } = await createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
+      to: email,
+      subject,
+      html
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Delivery email sent successfully:', info.messageId);
+    
+    if (isTestAccount) {
+      const messageUrl = nodemailer.getTestMessageUrl(info);
+      console.log('TEST EMAIL PREVIEW URL:', messageUrl);
+      info.messageUrl = messageUrl;
+    }
+    
+    return info;
+  } catch (error) {
+    console.error('Error sending delivery email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send an email notification when order is cancelled
+ * @param {string} email - User's email address
+ * @param {string} name - User's name
+ * @param {Object} order - Order details
+ * @returns {Promise} - Result of email sending operation
+ */
+async function sendOrderCancelledEmail(email, name, order) {
+  console.log(`Sending cancellation notification to: ${email}`);
+  
+  const subject = `Order #${order.id} Has Been Cancelled`;
+  
+  const html = `
+    <h2>Hello ${name},</h2>
+    <p>Your order #${order.id} has been cancelled as requested.</p>
+    <p>Here's a summary of your cancelled order:</p>
+    <ul>
+      <li><strong>Order ID:</strong> #${order.id}</li>
+      <li><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</li>
+      <li><strong>Status:</strong> Cancelled</li>
+    </ul>
+    <p>If you have any questions about your cancellation or would like to place a new order, please don't hesitate to contact us.</p>
+    <p>Thank you for your understanding.</p>
+    <p>Best regards,<br>Your Online Store Team</p>
+  `;
+
+  try {
+    const { transporter, isTestAccount, testAccount } = await createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
+      to: email,
+      subject,
+      html
+    };
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Cancellation email sent successfully:', info.messageId);
+    
+    if (isTestAccount) {
+      const messageUrl = nodemailer.getTestMessageUrl(info);
+      console.log('TEST EMAIL PREVIEW URL:', messageUrl);
+      info.messageUrl = messageUrl;
+    }
+    
+    return info;
+  } catch (error) {
+    console.error('Error sending cancellation email:', error);
+    throw error;
+  }
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -197,5 +355,8 @@ async function sendPriceApprovalNotification(email, name, productName, price) {
 module.exports = {
   sendInvoiceEmail,
   sendDiscountNotification,
-  sendPriceApprovalNotification
+  sendPriceApprovalNotification,
+  sendOrderInTransitEmail,
+  sendOrderDeliveredEmail,
+  sendOrderCancelledEmail
 }; 

@@ -116,6 +116,8 @@ const OrderProcessing = () => {
         return 'warning';
       case 'delivered':
         return 'success';
+      case 'cancelled':
+        return 'danger';
       default:
         return 'secondary';
     }
@@ -155,17 +157,17 @@ const OrderProcessing = () => {
         <Card.Body>
           <Row>
             <Col md={6}>
-              <Form.Group>
+              <Form.Group controlId="statusFilter" className="mb-3">
                 <Form.Label>Filter by Status</Form.Label>
-                <Form.Select 
+                <Form.Select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  disabled={loading || authError}
                 >
                   <option value="">All Orders</option>
                   <option value="processing">Processing</option>
                   <option value="in-transit">In Transit</option>
                   <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -264,6 +266,7 @@ const OrderProcessing = () => {
                   <option value="processing">Processing</option>
                   <option value="in-transit">In Transit</option>
                   <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
                 </Form.Select>
               </Form.Group>
             </>
