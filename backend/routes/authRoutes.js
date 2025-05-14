@@ -4,20 +4,26 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 const verifyToken = require("../middleware/auth");
+const { encrypt, decrypt } = require('../utils/simpleEncryption');
 
 // Kullanıcı Kaydı (Register)
 router.post("/register", async (req, res) => {
-  const { name, email, password, address } = req.body;
+  let { name, email, password, address } = req.body;
 
   if (!name || !email || !password || !address) {
     return res.status(400).json({ error: "Tüm alanlar gereklidir." });
   }
 
   try {
-    // Check if email already exists (case insensitive)
+    // Encrypt user fields
+    const encryptedEmail = encrypt(email.trim().toLowerCase());
+    const encryptedName = encrypt(name);
+    const encryptedAddress = encrypt(address);
+
+    // Check if email already exists (encrypted, case insensitive)
     const [existingUsers] = await db.promise().query(
-      "SELECT * FROM users WHERE LOWER(email) = LOWER(?)", 
-      [email]
+      "SELECT * FROM users WHERE email = ?",
+      [encryptedEmail]
     );
     
     if (existingUsers.length > 0) {
@@ -26,33 +32,32 @@ router.post("/register", async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Save with original email case for proper delivery
+    // Save encrypted fields
     await db.promise().query(
-      "INSERT INTO users (name, email, password, address) VALUES (?, ?, ?, ?)", 
-      [name, email, hashedPassword, address]
+      "INSERT INTO users (name, email, password, address) VALUES (?, ?, ?, ?)",
+      [encryptedName, encryptedEmail, hashedPassword, encryptedAddress]
     );
     
-    console.log(`User registered with email: ${email}`);
     res.json({ message: "Kullanıcı başarıyla kaydedildi." });
   } catch (err) {
-    console.error("Database error:", err);
     res.status(500).json({ error: "Kayıt başarısız." });
   }
 });
 
 // Kullanıcı Girişi (Login)
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: "Tüm alanlar gereklidir." });
   }
 
   try {
-    // Find user by email (case insensitive)
+    // Encrypt email for lookup (case insensitive)
+    const encryptedEmail = encrypt(email.trim().toLowerCase());
     const [users] = await db.promise().query(
-      "SELECT * FROM users WHERE LOWER(email) = LOWER(?)", 
-      [email]
+      "SELECT * FROM users WHERE email = ?",
+      [encryptedEmail]
     );
     
     if (users.length === 0) {
@@ -66,26 +71,29 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Yanlış şifre" });
     }
 
-    // Include the user role in the token payload
+    // Decrypt fields before sending to client
+    const decryptedName = decrypt(user.name);
+    const decryptedEmail = decrypt(user.email);
+    const decryptedAddress = decrypt(user.address);
+
     const token = jwt.sign(
-      { id: user.id, role: user.role }, 
-      process.env.JWT_SECRET || 'your-secret-key', 
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: "1h" }
     );
 
-    console.log(`User logged in: ${user.email} (original case preserved)`);
     res.json({ 
       message: "Giriş başarılı", 
       token,
       user: {
         id: user.id,
-        name: user.name,
-        email: user.email, // Preserved original case from database
+        name: decryptedName,
+        email: decryptedEmail,
+        address: decryptedAddress,
         role: user.role
       }
     });
   } catch (err) {
-    console.error("Login error:", err);
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
