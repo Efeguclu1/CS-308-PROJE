@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const { getOrGenerateInvoice } = require('../utils/invoiceGenerator');
 const { sendInvoiceEmail } = require('../utils/emailService');
+const { encrypt, decrypt } = require('../utils/simpleEncryption');
 
 // Ödeme işlemini gerçekleştir
 router.post('/process', async (req, res) => {
@@ -103,6 +104,19 @@ router.post('/process', async (req, res) => {
           [item.quantity, item.productId]
         );
       }
+
+      // Encrypt sensitive payment data
+      const encryptedCardNumber = encrypt(cleanCardNumber);
+      const encryptedCardName = encrypt(cardName);
+      const encryptedCVV = encrypt(cvv);
+
+      // Store encrypted payment info
+      await connection.query(
+        `INSERT INTO payment_info 
+        (order_id, encrypted_card_number, encrypted_card_name, encrypted_cvv, expiration_month, expiration_year) 
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [orderId, encryptedCardNumber, encryptedCardName, encryptedCVV, expirationMonth, expirationYear]
+      );
 
       // Transaction'ı onayla
       await connection.commit();
