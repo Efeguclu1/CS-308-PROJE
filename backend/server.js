@@ -112,7 +112,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!', details: err.message });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 // Remove this listen call, as app.js handles it
 // app.listen(PORT, () => {
 //   // Use the console log from app.js which is now starting the server
