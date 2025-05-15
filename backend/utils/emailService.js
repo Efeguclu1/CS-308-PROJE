@@ -352,11 +352,187 @@ async function sendPriceApprovalNotification(email, name, productName, price) {
   }
 }
 
+/**
+ * Send order status update email
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.name - Customer name
+ * @param {string} options.orderId - Order ID
+ * @param {string} options.status - Order status
+ * @param {Object} options.orderDetails - Order details
+ * @param {string} options.additionalInfo - Additional information
+ * @returns {Promise} - Result of email sending operation
+ */
+async function sendOrderStatusEmail(options) {
+  try {
+    const { to, name, orderId, status, orderDetails, additionalInfo } = options;
+    console.log(`Sending order status update email to ${to} for order ${orderId} - Status: ${status}`);
+    
+    let subject = `Order #${orderId} Update`;
+    let statusMessage = '';
+    let actionSection = '';
+    
+    // Customize email based on order status
+    switch (status) {
+      case 'in-transit':
+        subject = `Your Order #${orderId} is on the way!`;
+        statusMessage = 'Your order is now in transit.';
+        actionSection = `
+          <p>Your package is on its way to you! Expect delivery within 3-5 business days.</p>
+          <p>You will receive another notification when your order is delivered.</p>
+        `;
+        break;
+        
+      case 'delivered':
+        subject = `Your Order #${orderId} has been delivered!`;
+        statusMessage = 'Your order has been delivered.';
+        actionSection = `
+          <p>Your package has been delivered to your address.</p>
+          <p>If you have any issues with your order, you can request a refund within 30 days.</p>
+        `;
+        break;
+        
+      case 'cancelled':
+        subject = `Your Order #${orderId} has been cancelled`;
+        statusMessage = 'Your order has been cancelled.';
+        actionSection = `
+          <p>Your order has been successfully cancelled as requested.</p>
+          <p>Any payment made for this order will be refunded to your original payment method within 5-7 business days.</p>
+          ${additionalInfo ? `<p>Cancellation reason: ${additionalInfo}</p>` : ''}
+          <p>Thank you for your understanding.</p>
+        `;
+        break;
+        
+      case 'refund-requested':
+        subject = `Refund Request Received for Order #${orderId}`;
+        statusMessage = 'Your refund request has been received.';
+        actionSection = `
+          <p>We have received your refund request for Order #${orderId}.</p>
+          <p>Our team will review your request and you will be notified when a decision has been made.</p>
+          <p>Reason for refund: ${additionalInfo || 'Not specified'}</p>
+        `;
+        break;
+        
+      case 'refund-approved':
+        subject = `Refund Approved for Order #${orderId}`;
+        statusMessage = 'Your refund has been approved.';
+        actionSection = `
+          <p>Good news! Your refund request for Order #${orderId} has been approved.</p>
+          <p>The refund amount will be processed to your original payment method within 5-7 business days.</p>
+          ${additionalInfo ? `<p>Admin note: ${additionalInfo}</p>` : ''}
+        `;
+        break;
+        
+      case 'refund-denied':
+        subject = `Refund Request Denied for Order #${orderId}`;
+        statusMessage = 'Your refund request has been denied.';
+        actionSection = `
+          <p>We're sorry, but your refund request for Order #${orderId} has been denied.</p>
+          ${additionalInfo ? `<p>Reason: ${additionalInfo}</p>` : ''}
+          <p>If you have any questions, please contact our customer support team.</p>
+        `;
+        break;
+        
+      default:
+        statusMessage = `Your order status has been updated to: ${status}`;
+        actionSection = `<p>Thank you for shopping with us!</p>`;
+    }
+    
+    // Create order items HTML table
+    let orderItemsHtml = '';
+    if (orderDetails && orderDetails.items && orderDetails.items.length > 0) {
+      orderItemsHtml = `
+        <h3>Order Items</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr style="background-color: #f2f2f2;">
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Product</th>
+            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Quantity</th>
+            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Price</th>
+          </tr>
+          ${orderDetails.items.map(item => `
+            <tr>
+              <td style="padding: 10px; text-align: left; border: 1px solid #ddd;">${item.product_name || 'Product'}</td>
+              <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">${item.quantity}</td>
+              <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">$${(item.price * item.quantity).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+          <tr style="font-weight: bold;">
+            <td colspan="2" style="padding: 10px; text-align: right; border: 1px solid #ddd;">Total:</td>
+            <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">$${orderDetails.total_amount ? parseFloat(orderDetails.total_amount).toFixed(2) : '0.00'}</td>
+          </tr>
+        </table>
+      `;
+    }
+    
+    // Create email HTML
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h1 style="color: #333;">Order Status Update</h1>
+        </div>
+        
+        <div style="padding: 20px;">
+          <h2>Hello ${name || 'Valued Customer'},</h2>
+          
+          <p style="font-size: 18px; margin-bottom: 20px;"><strong>${statusMessage}</strong></p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <p><strong>Order ID:</strong> #${orderId}</p>
+            <p><strong>Status:</strong> ${status}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          
+          ${orderItemsHtml}
+          
+          <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            ${actionSection}
+          </div>
+          
+          <p>Thank you for shopping with our store!</p>
+          <p>If you have any questions, please contact our customer support.</p>
+          
+          <div style="padding-top: 20px; border-top: 1px solid #eee; margin-top: 20px; color: #777; font-size: 12px;">
+            <p>This is an automated email, please do not reply to this message.</p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Get transporter
+    const { transporter, isTestAccount, testAccount } = await createTransporter();
+    
+    // Mail options
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
+      to,
+      subject,
+      html
+    };
+    
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Order status email sent to ${to}, messageId: ${info.messageId}`);
+    
+    // For test accounts, log preview URL
+    if (isTestAccount) {
+      const messageUrl = nodemailer.getTestMessageUrl(info);
+      console.log('TEST EMAIL PREVIEW URL:', messageUrl);
+      info.messageUrl = messageUrl;
+    }
+    
+    return info;
+  } catch (error) {
+    console.error('Error sending order status email:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   sendInvoiceEmail,
   sendDiscountNotification,
   sendPriceApprovalNotification,
   sendOrderInTransitEmail,
   sendOrderDeliveredEmail,
-  sendOrderCancelledEmail
+  sendOrderCancelledEmail,
+  sendOrderStatusEmail
 }; 

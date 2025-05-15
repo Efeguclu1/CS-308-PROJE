@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const { sendOrderInTransitEmail, sendOrderDeliveredEmail, sendOrderCancelledEmail } = require('../utils/emailService');
+const { 
+  sendOrderInTransitEmail, 
+  sendOrderDeliveredEmail, 
+  sendOrderCancelledEmail,
+  sendOrderStatusEmail 
+} = require('../utils/emailService');
 
 // Log all requests to this router
 router.use((req, res, next) => {
@@ -239,10 +244,10 @@ router.get('/:orderId', async (req, res) => {
   }
 });
 
-// Sipariş durumunu güncelle
+// Admin: Update order status
 router.patch('/:orderId/status', async (req, res) => {
   const { orderId } = req.params;
-  const { status } = req.body;
+  const { status, adminNote } = req.body;
   
   console.log(`Updating order ${orderId} status to ${status}`);
   console.log('User from token:', req.user);
@@ -255,7 +260,7 @@ router.patch('/:orderId/status', async (req, res) => {
     });
   }
   
-  if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
+  if (!['processing', 'in-transit', 'delivered', 'cancelled', 'refund-requested', 'refund-approved', 'refund-denied'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status value' });
   }
   
@@ -273,11 +278,31 @@ router.patch('/:orderId/status', async (req, res) => {
     const order = orderResult[0];
     const previousStatus = order.status;
     
-    // Update the order status
-    const [result] = await db.promise().query(
-      'UPDATE orders SET status = ? WHERE id = ?',
-      [status, orderId]
-    );
+    // If status is 'delivered', also update the delivered_at timestamp
+    let query = '';
+    const params = [];
+    
+    if (status === 'delivered') {
+      // Include admin_note if provided
+      if (adminNote) {
+        query = 'UPDATE orders SET status = ?, delivered_at = NOW(), admin_note = ? WHERE id = ?';
+        params.push(status, adminNote, orderId);
+      } else {
+        query = 'UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?';
+        params.push(status, orderId);
+      }
+    } else {
+      // Include admin_note if provided
+      if (adminNote) {
+        query = 'UPDATE orders SET status = ?, admin_note = ? WHERE id = ?';
+        params.push(status, adminNote, orderId);
+      } else {
+        query = 'UPDATE orders SET status = ? WHERE id = ?';
+        params.push(status, orderId);
+      }
+    }
+    
+    const [result] = await db.promise().query(query, params);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Order not found' });
@@ -287,23 +312,28 @@ router.patch('/:orderId/status', async (req, res) => {
     try {
       // Only send email if status has changed
       if (status !== previousStatus) {
-        // Send in-transit notification
-        if (status === 'in-transit') {
-          await sendOrderInTransitEmail(order.email, order.name, order);
-          console.log(`In-transit email sent to ${order.email} for order #${orderId}`);
-        }
+        // Get order items for the email
+        const [items] = await db.promise().query(
+          `SELECT oi.*, p.name as product_name 
+           FROM order_items oi 
+           JOIN products p ON oi.product_id = p.id 
+           WHERE oi.order_id = ?`,
+          [orderId]
+        );
         
-        // Send delivered notification
-        else if (status === 'delivered') {
-          await sendOrderDeliveredEmail(order.email, order.name, order);
-          console.log(`Delivered email sent to ${order.email} for order #${orderId}`);
-        }
+        // Use the newer combined email service
+        await sendOrderStatusEmail({
+          to: order.email,
+          name: order.name,
+          orderId: order.id,
+          status: status,
+          orderDetails: {
+            ...order,
+            items: items || []
+          }
+        });
         
-        // Send cancellation notification
-        else if (status === 'cancelled') {
-          await sendOrderCancelledEmail(order.email, order.name, order);
-          console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
-        }
+        console.log(`Status update email sent to ${order.email} for order #${orderId}`);
       }
     } catch (emailError) {
       console.error('Error sending status update email:', emailError);
@@ -404,10 +434,30 @@ router.patch('/:orderId/cancel', async (req, res) => {
       throw new Error('Failed to update order status');
     }
     
-    // Send cancellation email (email ve name değerleri artık mevcut)
+    // Get order items for the email
+    const [items] = await db.promise().query(
+      `SELECT oi.*, p.name as product_name 
+       FROM order_items oi 
+       JOIN products p ON oi.product_id = p.id 
+       WHERE oi.order_id = ?`,
+      [orderId]
+    );
+    
+    // Send cancellation email using new combined email method
     try {
-      console.log(`Attempting to send email to ${order.email} for user ${order.name}`);
-      await sendOrderCancelledEmail(order.email, order.name, order);
+      console.log(`Sending cancellation email to ${order.email}`);
+      // Use the newer combined email service
+      await sendOrderStatusEmail({
+        to: order.email,
+        name: order.name,
+        orderId: order.id,
+        status: 'cancelled',
+        orderDetails: {
+          total_amount: order.total_amount,
+          items: items || []
+        },
+        additionalInfo: req.body.cancellation_reason || 'Customer requested cancellation'
+      });
       console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
     } catch (emailError) {
       console.error('Error sending cancellation email:', emailError);
@@ -418,6 +468,93 @@ router.patch('/:orderId/cancel', async (req, res) => {
     
     console.log('Order cancelled successfully');
     await db.promise().commit();
+    
+    // Restore product stock quantities - After cancellation is committed
+    try {
+      console.log(`======= ORDER CANCELLATION STOCK UPDATE DEBUG (Order #${orderId}) =======`);
+      
+      // Create a separate transaction for stock updates
+      await db.promise().beginTransaction();
+      
+      // Get order items
+      const [orderItems] = await db.promise().query(
+        `SELECT oi.*, p.name, p.stock
+         FROM order_items oi
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.order_id = ?`,
+        [orderId]
+      );
+      
+      console.log(`Found ${orderItems.length} items to update stock for cancellation`);
+      
+      // Flag to track if all updates succeeded
+      let allUpdatesSuccessful = true;
+      
+      // Update stock for each item individually
+      for (const item of orderItems) {
+        console.log(`Updating stock for product ${item.product_id} (${item.name}), current stock: ${item.stock}, adding: ${item.quantity}`);
+        
+        // Use FOR UPDATE to lock the row during update
+        const [currentProductData] = await db.promise().query(
+          'SELECT id, stock FROM products WHERE id = ? FOR UPDATE',
+          [item.product_id]
+        );
+        
+        if (currentProductData.length === 0) {
+          console.error(`Product ${item.product_id} not found!`);
+          allUpdatesSuccessful = false;
+          continue;
+        }
+        
+        const updateQuery = 'UPDATE products SET stock = stock + ? WHERE id = ?';
+        const [updateResult] = await db.promise().query(updateQuery, [item.quantity, item.product_id]);
+        
+        const updateSuccess = updateResult.affectedRows > 0;
+        console.log(`Stock update result for product ${item.product_id}:`, updateSuccess ? 'SUCCESS' : 'FAILED');
+        
+        if (!updateSuccess) {
+          allUpdatesSuccessful = false;
+        }
+        
+        // Verify the update
+        const [updatedProduct] = await db.promise().query(
+          'SELECT id, name, stock FROM products WHERE id = ?',
+          [item.product_id]
+        );
+        
+        if (updatedProduct.length > 0) {
+          console.log(`Product ${item.product_id} new stock: ${updatedProduct[0].stock} (was: ${item.stock}, change: ${updatedProduct[0].stock - item.stock})`);
+        }
+      }
+      
+      // Commit or rollback based on success
+      if (allUpdatesSuccessful) {
+        await db.promise().commit();
+        console.log('Stock update transaction committed successfully');
+      } else {
+        await db.promise().rollback();
+        console.log('Stock update transaction rolled back due to errors');
+        
+        // Log this for investigation
+        console.error(`CRITICAL: Failed to update stock for cancelled order #${orderId}. Manual intervention required.`);
+      }
+      
+      console.log(`======= END OF ORDER CANCELLATION STOCK UPDATE DEBUG =======`);
+    } catch (stockError) {
+      console.error('Error restoring product stock after cancellation:', stockError);
+      
+      // Try to rollback if there was an error during the stock update transaction
+      try {
+        await db.promise().rollback();
+        console.log('Stock update transaction rolled back after error');
+      } catch (rollbackError) {
+        console.error('Error rolling back stock update transaction:', rollbackError);
+      }
+      
+      // Log this critical error for monitoring systems
+      console.error(`CRITICAL ERROR: Failed to update stock for cancelled order #${orderId}. Manual intervention required.`);
+    }
+    
     res.json({ 
       success: true, 
       message: 'Order cancelled successfully' 
@@ -443,20 +580,120 @@ router.patch('/:orderId/cancel', async (req, res) => {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    if (error.code) console.error('SQL Error code:', error.code);
-    if (error.sqlMessage) console.error('SQL Error message:', error.sqlMessage);
+    console.error('===========');
     
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to cancel order',
-      details: error.message,
-      debug: {
-        errorName: error.name,
-        errorCode: error.code,
-        sqlMessage: error.sqlMessage
-      }
+    return res.status(500).json({
+      success: false,
+      error: 'An error occurred while cancelling the order',
+      details: error.message
     });
   }
 });
+
+// Delivered durumundaki siparişi refund et (kısa yol)
+router.post('/:orderId/refund-request', async (req, res) => {
+  const { orderId } = req.params;
+  const { reason } = req.body;
+  const userId = req.user.id;
+  
+  console.log(`Processing refund request for order ${orderId} by user ${userId}`);
+  
+  try {
+    // Verify the order exists and belongs to the user
+    const [orders] = await db.promise().query(
+      'SELECT * FROM orders WHERE id = ? AND user_id = ?',
+      [orderId, userId]
+    );
+    
+    if (orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found or does not belong to you'
+      });
+    }
+    
+    const order = orders[0];
+    
+    // Verify the order status is 'delivered'
+    if (order.status !== 'delivered') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only delivered orders can be refunded'
+      });
+    }
+    
+    // Create a refund request
+    const [result] = await db.promise().query(
+      `INSERT INTO refund_requests 
+       (order_id, user_id, reason, status, requested_at) 
+       VALUES (?, ?, ?, 'pending', NOW())`,
+      [orderId, userId, reason || 'No reason provided']
+    );
+    
+    if (result.affectedRows === 0) {
+      throw new Error('Failed to create refund request');
+    }
+    
+    // Update order status to indicate a refund is requested
+    await db.promise().query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      ['refund-requested', orderId]
+    );
+    
+    // Get user info for email
+    const [users] = await db.promise().query(
+      'SELECT email, name FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (users.length > 0) {
+      const user = users[0];
+      
+      // Get order items for the email
+      const [items] = await db.promise().query(
+        `SELECT oi.*, p.name as product_name 
+         FROM order_items oi 
+         JOIN products p ON oi.product_id = p.id 
+         WHERE oi.order_id = ?`,
+        [orderId]
+      );
+      
+      // Send email notification about refund request
+      try {
+        await sendOrderStatusEmail({
+          to: user.email,
+          name: user.name,
+          orderId: order.id,
+          status: 'refund-requested',
+          orderDetails: {
+            total_amount: order.total_amount,
+            items: items || []
+          },
+          additionalInfo: reason || 'No reason provided'
+        });
+        
+        console.log(`Refund request email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send refund request email:', emailError);
+        // Continue with response even if email fails
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Refund request submitted successfully',
+      refundId: result.insertId
+    });
+  } catch (error) {
+    console.error('Error processing refund request:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process refund request',
+      details: error.message
+    });
+  }
+});
+
+// Test: Sahte teslim edilmiş siparişi döndür
 
 module.exports = router; 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Alert, Button, Spinner, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Button, Spinner, Badge, Modal, Form } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,14 @@ const Orders = () => {
   const navigate = useNavigate();
   const [retryCount, setRetryCount] = useState(0);
   const [cancellingOrder, setCancellingOrder] = useState({});
+  const [requestingRefund, setRequestingRefund] = useState({});
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [currentOrderId, setCurrentOrderId] = useState(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [refundSuccess, setRefundSuccess] = useState(null);
+  const [cancelSuccess, setCancelSuccess] = useState(null);
 
   const fetchOrders = async () => {
     if (!user || !user.id) return;
@@ -127,22 +135,180 @@ const Orders = () => {
     }
   };
 
-  const handleCancelOrder = async (orderId) => {
-    setCancellingOrder(prev => ({ ...prev, [orderId]: true }));
+  const handleCancelOrder = async () => {
+    if (!currentOrderId) return;
+    
+    setCancellingOrder(prev => ({ ...prev, [currentOrderId]: true }));
     
     try {
-      const response = await axios.patch(`${API_BASE_URL}/orders/${orderId}/cancel`);
+      await axios.patch(`${API_BASE_URL}/orders/${currentOrderId}/cancel`);
       
-      if (response.data.success) {
-        // Siparişleri yeniden yükle
-        fetchOrders();
-      }
+      // Update the order status in the local state
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.id === currentOrderId 
+          ? { ...order, status: 'cancelled' } 
+          : order
+      ));
+      
+      setCancelSuccess('Order cancelled successfully.');
+      setShowCancelModal(false);
+      setCancellationReason('');
     } catch (err) {
       console.error('Error cancelling order:', err);
       alert(err.response?.data?.error || 'Failed to cancel order');
     } finally {
-      setCancellingOrder(prev => ({ ...prev, [orderId]: false }));
+      setCancellingOrder(prev => ({ ...prev, [currentOrderId]: false }));
     }
+  };
+
+  const handleRequestRefund = async () => {
+    if (!currentOrderId || !refundReason.trim()) return;
+    
+    setRequestingRefund(prev => ({ ...prev, [currentOrderId]: true }));
+    
+    try {
+      console.log('Sending refund request:', {
+        order_id: currentOrderId,
+        reason: refundReason
+      });
+      
+      const response = await axios.post(`${API_BASE_URL}/refunds/request`, {
+        order_id: currentOrderId,
+        reason: refundReason
+      });
+      
+      console.log('Refund request response:', response.data);
+      
+      // Update the order status in the local state
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.id === currentOrderId 
+          ? { ...order, status: 'refund-requested' } 
+          : order
+      ));
+      
+      setRefundSuccess('Refund request submitted successfully.');
+      setShowRefundModal(false);
+      setRefundReason('');
+    } catch (err) {
+      console.error('Error requesting refund:', err);
+      let errorMessage = 'Failed to request refund';
+      
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+        errorMessage = err.response?.data?.error || errorMessage;
+      } else if (err.request) {
+        console.error('Error request:', err.request);
+        errorMessage = 'Could not connect to the server';
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setRequestingRefund(prev => ({ ...prev, [currentOrderId]: false }));
+    }
+  };
+
+  const openRefundModal = (orderId) => {
+    setCurrentOrderId(orderId);
+    setRefundReason('');
+    setShowRefundModal(true);
+  };
+
+  const openCancelModal = (orderId) => {
+    setCurrentOrderId(orderId);
+    setCancellationReason('');
+    setShowCancelModal(true);
+  };
+
+  // Deliver edilmiş siparişler için refund request butonu render etme - 
+  // BİLEŞEN İÇİNE ALINARAK DEĞİŞKENLERE ERİŞİM SAĞLANDI
+  const renderOrderActions = (order) => {
+    const isRefundable = order.status === 'delivered';
+    const hasRefundRequest = ['refund-requested', 'refund-approved', 'refund-denied'].includes(order.status);
+    
+    return (
+      <div className="mt-3">
+        <Button 
+          variant="outline-primary" 
+          size="sm"
+          onClick={() => handleDownloadInvoice(order.id)}
+          disabled={downloadingInvoice[order.id]}
+          className="mt-2 me-2"
+        >
+          {downloadingInvoice[order.id] ? (
+            <>
+              <Spinner 
+                as="span" 
+                animation="border" 
+                size="sm" 
+                role="status" 
+                aria-hidden="true" 
+                className="me-1"
+              />
+              Downloading...
+            </>
+          ) : (
+            <>
+              <FaFileInvoice className="me-1" />
+              Download Invoice
+            </>
+          )}
+        </Button>
+        
+        {order.status === 'processing' && (
+          <Button
+            variant="outline-danger"
+            size="sm"
+            onClick={() => openCancelModal(order.id)}
+            disabled={cancellingOrder[order.id]}
+            className="mt-2"
+          >
+            {cancellingOrder[order.id] ? (
+              <>
+                <Spinner 
+                  as="span" 
+                  animation="border" 
+                  size="sm" 
+                  role="status" 
+                  aria-hidden="true" 
+                  className="me-1"
+                />
+                Cancelling...
+              </>
+            ) : (
+              'Cancel Order'
+            )}
+          </Button>
+        )}
+        
+        {isRefundable && !hasRefundRequest && (
+          <Button
+            variant="outline-warning"
+            size="sm"
+            onClick={() => openRefundModal(order.id)}
+            disabled={requestingRefund[order.id]}
+            className="mt-2"
+          >
+            {requestingRefund[order.id] ? (
+              <>
+                <Spinner 
+                  as="span" 
+                  animation="border" 
+                  size="sm" 
+                  role="status" 
+                  aria-hidden="true" 
+                  className="me-1"
+                />
+                Processing...
+              </>
+            ) : (
+              'Request Refund'
+            )}
+          </Button>
+        )}
+      </div>
+    );
   };
 
   if (authLoading) {
@@ -171,6 +337,18 @@ const Orders = () => {
   return (
     <Container className="py-5">
       <h2 className="mb-4">My Orders</h2>
+      
+      {refundSuccess && (
+        <Alert variant="success" onClose={() => setRefundSuccess(null)} dismissible>
+          {refundSuccess}
+        </Alert>
+      )}
+      
+      {cancelSuccess && (
+        <Alert variant="success" onClose={() => setCancelSuccess(null)} dismissible>
+          {cancelSuccess}
+        </Alert>
+      )}
       
       {loading ? (
         <div className="text-center">
@@ -216,7 +394,7 @@ const Orders = () => {
                       </span>
                     </div>
                     <Badge bg={getStatusBadgeClass(order.status)}>
-                      {order.status || 'Processing'}
+                      {formatOrderStatus(order.status) || 'Processing'}
                     </Badge>
                   </Card.Header>
                   <Card.Body>
@@ -248,59 +426,12 @@ const Orders = () => {
                             <h6 className="mb-2">Shipping Address:</h6>
                             <p className="text-muted mb-0">{order.delivery_address || 'Not specified'}</p>
                           </div>
-                          <div className="mt-3">
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(order.id)}
-                              disabled={downloadingInvoice[order.id]}
-                              className="mt-2 me-2"
-                            >
-                              {downloadingInvoice[order.id] ? (
-                                <>
-                                  <Spinner 
-                                    as="span" 
-                                    animation="border" 
-                                    size="sm" 
-                                    role="status" 
-                                    aria-hidden="true" 
-                                    className="me-1"
-                                  />
-                                  Downloading...
-                                </>
-                              ) : (
-                                <>
-                                  <FaFileInvoice className="me-1" />
-                                  Download Invoice
-                                </>
-                              )}
-                            </Button>
-                            {order.status === 'processing' && (
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleCancelOrder(order.id)}
-                                disabled={cancellingOrder[order.id]}
-                                className="mt-2"
-                              >
-                                {cancellingOrder[order.id] ? (
-                                  <>
-                                    <Spinner 
-                                      as="span" 
-                                      animation="border" 
-                                      size="sm" 
-                                      role="status" 
-                                      aria-hidden="true" 
-                                      className="me-1"
-                                    />
-                                    Cancelling...
-                                  </>
-                                ) : (
-                                  'Cancel Order'
-                                )}
-                              </Button>
-                            )}
-                          </div>
+                          {order.status === 'delivered' && order.delivered_at && (
+                            <p className="text-muted mb-1">
+                              <small>Delivered on: {formatDate(order.delivered_at)}</small>
+                            </p>
+                          )}
+                          {renderOrderActions(order)}
                         </div>
                       </Col>
                     </Row>
@@ -317,6 +448,75 @@ const Orders = () => {
           </div>
         </div>
       )}
+      
+      {/* Refund Request Modal */}
+      <Modal show={showRefundModal} onHide={() => setShowRefundModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Request Refund</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Reason for Refund</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="Please explain why you are requesting a refund"
+                required
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowRefundModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleRequestRefund}
+            disabled={!refundReason.trim()}
+          >
+            Submit Request
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
+      {/* Order Cancellation Modal */}
+      <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Cancel Order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Reason for Cancellation</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Please explain why you are cancelling this order"
+              />
+              <Form.Text className="text-muted">
+                Providing a reason is optional but helps us improve our service.
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCancelModal(false)}>
+            Back
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={handleCancelOrder}
+          >
+            Confirm Cancellation
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
@@ -332,9 +532,48 @@ const getStatusBadgeClass = (status) => {
       return 'success';
     case 'cancelled':
       return 'danger';
+    case 'refund-requested':
+      return 'warning';
+    case 'refund-approved':
+      return 'success';
+    case 'refund-denied':
+      return 'danger';
     default:
       return 'secondary';
   }
+};
+
+// Helper function to format order status for display
+const formatOrderStatus = (status) => {
+  switch (status) {
+    case 'processing':
+      return 'Processing';
+    case 'in-transit':
+      return 'In Transit';
+    case 'delivered':
+      return 'Delivered';
+    case 'cancelled':
+      return 'Cancelled';
+    case 'refund-requested':
+      return 'Refund Requested';
+    case 'refund-approved':
+      return 'Refund Approved';
+    case 'refund-denied':
+      return 'Refund Denied';
+    default:
+      return status;
+  }
+};
+
+// Add this function to format dates
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 };
 
 export default Orders; 
