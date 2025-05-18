@@ -41,6 +41,40 @@ router.get("/categories/all", (req, res) => {
   });
 });
 
+// Add new category (only for product managers)
+router.post("/categories/create", verifyToken, (req, res) => {
+  console.log("Creating category - received data:", JSON.stringify(req.body));
+  
+  // Check if user has product_manager role
+  if (req.user.role !== 'product_manager') {
+    return res.status(403).json({ error: "Unauthorized. Only product managers can access this endpoint." });
+  }
+  
+  // Extract fields with validation
+  try {
+    const { name, description = "" } = req.body;
+    
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ error: "Category name is required." });
+    }
+    
+    const query = "INSERT INTO categories (name, description) VALUES (?, ?)";
+    
+    db.query(query, [name, description], (err, results) => {
+      if (err) {
+        console.error('Insert error details:', err);
+        return res.status(500).json({ error: `Error creating category: ${err.message}` });
+      }
+      console.log("Category created successfully, ID:", results.insertId);
+      res.status(201).json({ id: results.insertId, name, description, message: "Category created successfully" });
+    });
+  } catch (error) {
+    console.error("Exception in category creation:", error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+});
+
 // Get products by category
 router.get("/category/:categoryId", (req, res) => {
   const categoryId = req.params.categoryId;
@@ -332,7 +366,7 @@ router.delete("/admin/:id", verifyToken, (req, res) => {
 });
 
 // Update product stock
-router.patch("/admin/:id/stock", verifyToken, (req, res) => {
+router.put("/admin/stock/:id", verifyToken, (req, res) => {
   // Check if user has product_manager role
   if (req.user.role !== 'product_manager') {
     return res.status(403).json({ error: "Unauthorized. Only product managers can access this endpoint." });

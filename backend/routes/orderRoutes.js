@@ -31,7 +31,8 @@ router.get('/', async (req, res) => {
   
   try {
     let query = `
-      SELECT o.*, u.name AS user_name 
+      SELECT o.*, u.name AS user_name, 
+             o.delivery_address
       FROM orders o
       JOIN users u ON o.user_id = u.id
     `;
@@ -72,6 +73,7 @@ router.get('/', async (req, res) => {
         
         ordersWithItems.push({
           ...order,
+          full_address: order.delivery_address,
           items: items || []
         });
       } catch (itemError) {

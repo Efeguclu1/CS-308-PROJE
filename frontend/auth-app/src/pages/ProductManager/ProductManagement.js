@@ -51,6 +51,14 @@ const ProductManagement = () => {
   const [productToUpdateStock, setProductToUpdateStock] = useState(null);
   const [newStockValue, setNewStockValue] = useState(0);
 
+  // State for category management
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: ''
+  });
+  const [categoryFormErrors, setCategoryFormErrors] = useState({});
+
   // Fetch products and categories on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -105,7 +113,7 @@ const ProductManagement = () => {
       product.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = filterCategory ? product.category_id === filterCategory : true;
+    const matchesCategory = filterCategory ? product.category_id == filterCategory : true;
     
     return matchesSearch && matchesCategory;
   });
@@ -396,19 +404,23 @@ const ProductManagement = () => {
   // Update stock
   const handleUpdateStock = async () => {
     try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-      
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Authentication token is missing. Please log in again.');
-        setLoading(false);
         return;
       }
-      
-      await axios.patch(
-        `${API_BASE_URL}/products/admin/${productToUpdateStock.id}/stock`,
+
+      if (!productToUpdateStock) {
+        setError('No product selected for stock update.');
+        return;
+      }
+
+      if (newStockValue < 0) {
+        setError('Stock value cannot be negative.');
+        return;
+      }
+
+      await axios.put(`${API_BASE_URL}/products/admin/stock/${productToUpdateStock.id}`, 
         { stock: newStockValue },
         {
           headers: {
@@ -416,27 +428,99 @@ const ProductManagement = () => {
           }
         }
       );
-      
-      // Refresh products list
-      const productsResponse = await axios.get(`${API_BASE_URL}/products/admin/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      setProducts(productsResponse.data);
-      setSuccess('Stock updated successfully');
+
+      // Update products in state
+      setProducts(products.map(p => 
+        p.id === productToUpdateStock.id 
+          ? { ...p, stock: newStockValue } 
+          : p
+      ));
+
+      setSuccess(`Stock for ${productToUpdateStock.name} updated successfully!`);
       setShowStockModal(false);
-      setProductToUpdateStock(null);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
     } catch (err) {
-      if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else {
-        setError(err.response?.data?.error || 'Error updating stock. Please try again.');
-      }
       console.error('Error updating stock:', err);
-    } finally {
-      setLoading(false);
+      setError(err.response?.data?.error || 'Error updating stock. Please try again.');
+    }
+  };
+
+  // Handle category form input changes
+  const handleCategoryInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    setCategoryFormData({
+      ...categoryFormData,
+      [name]: value
+    });
+    
+    // Clear specific field error when user starts typing
+    if (categoryFormErrors[name]) {
+      setCategoryFormErrors({
+        ...categoryFormErrors,
+        [name]: ''
+      });
+    }
+  };
+
+  // Validate category form
+  const validateCategoryForm = () => {
+    const newErrors = {};
+    
+    if (!categoryFormData.name.trim()) {
+      newErrors.name = 'Category name is required';
+    }
+    
+    setCategoryFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Submit category form (create)
+  const handleSubmitCategory = async (e) => {
+    e.preventDefault();
+    
+    if (!validateCategoryForm()) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication token is missing. Please log in again.');
+        return;
+      }
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/products/categories/create`,
+        categoryFormData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Add the new category to the categories state
+      setCategories([...categories, response.data]);
+      
+      // Show success message
+      setSuccess('Category created successfully!');
+      
+      // Reset form and close modal
+      setCategoryFormData({ name: '', description: '' });
+      setShowCategoryModal(false);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+    } catch (err) {
+      console.error('Error creating category:', err);
+      setError(err.response?.data?.error || 'Error creating category. Please try again.');
     }
   };
 
@@ -543,26 +627,24 @@ const ProductManagement = () => {
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
       <Row className="mb-4">
-        <Col md={6}>
+        <Col md={2}>
+          <Button variant="primary" onClick={handleAddProduct} className="w-100">
+            Add Product
+          </Button>
+        </Col>
+        <Col md={3}>
           <InputGroup>
             <Form.Control
+              type="text"
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            {searchTerm && (
-              <Button 
-                variant="outline-secondary" 
-                onClick={() => setSearchTerm('')}
-              >
-                Clear
-              </Button>
-            )}
           </InputGroup>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select 
-            value={filterCategory} 
+            value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="">All Categories</option>
@@ -572,6 +654,11 @@ const ProductManagement = () => {
               </option>
             ))}
           </Form.Select>
+        </Col>
+        <Col md={2}>
+          <Button variant="outline-success" onClick={() => setShowCategoryModal(true)} className="w-100">
+            Add Category
+          </Button>
         </Col>
         <Col md={2} className="text-end">
           <span className="me-2">Total: {filteredProducts.length}</span>
@@ -956,6 +1043,63 @@ const ProductManagement = () => {
             )}
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Category Modal */}
+      <Modal show={showCategoryModal} onHide={() => setShowCategoryModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Category</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmitCategory}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Name *</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                value={categoryFormData.name}
+                onChange={handleCategoryInputChange}
+                isInvalid={!!categoryFormErrors.name}
+                required
+              />
+              <Form.Control.Feedback type="invalid">
+                {categoryFormErrors.name}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="description"
+                value={categoryFormData.description}
+                onChange={handleCategoryInputChange}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowCategoryModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                  />
+                  <span className="ms-2">Saving...</span>
+                </>
+              ) : (
+                'Create Category'
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </Container>
   );
