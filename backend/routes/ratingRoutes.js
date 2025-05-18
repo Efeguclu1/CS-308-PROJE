@@ -104,44 +104,41 @@ router.post('/submit', async (req, res) => {
   const { userId, productId, rating, comment } = req.body;
   
   try {
-    // Check if user has purchased this product
-    const [orders] = await db.promise().query(
-      `SELECT o.id 
-       FROM orders o 
-       JOIN order_items oi ON o.id = oi.order_id 
-       WHERE o.user_id = ? AND oi.product_id = ?
+    // First, check if the user has purchased this product at all
+    const [purchaseCheck] = await db.promise().query(
+      `SELECT oi.order_id 
+       FROM order_items oi 
+       JOIN orders o ON oi.order_id = o.id 
+       WHERE o.user_id = ? AND oi.product_id = ? 
        LIMIT 1`,
       [userId, productId]
     );
     
-    if (orders.length === 0) {
-      return res.status(403).json({ 
-        error: 'You can only rate products you have purchased' 
+    if (purchaseCheck.length === 0) {
+      // User has not purchased this product
+      return res.status(403).json({
+        error: 'You can only rate products you have purchased'
+      });
+    }
+
+    // If purchased, check if any of the orders for this product have been delivered
+    const [deliveredCheck] = await db.promise().query(
+      `SELECT o.id 
+       FROM orders o 
+       JOIN order_items oi ON o.id = oi.order_id 
+       WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'delivered'
+       LIMIT 1`,
+      [userId, productId]
+    );
+    
+    if (deliveredCheck.length === 0) {
+      // User has purchased but the order is not yet delivered
+      return res.status(403).json({
+        error: 'You can only rate and comment on products after they have been delivered'
       });
     }
     
-    // Check if user has already rated this product
-    // const [existingRating] = await db.promise().query(
-    //   `SELECT id FROM ratings WHERE user_id = ? AND product_id = ?`,
-    //   [userId, productId]
-    // );
-    
-    // if (existingRating.length > 0) {
-    //   // Update existing rating - REMOVED
-    //   await db.promise().query(
-    //     `UPDATE ratings 
-    //      SET rating = ?, comment = ?, comment_approved = ? 
-    //      WHERE user_id = ? AND product_id = ?`,
-    //     [rating, comment, comment ? 0 : null, userId, productId]
-    //   );
-      
-    //   return res.json({ 
-    //     success: true, 
-    //     message: 'Rating updated successfully. Your comment will be visible after approval.' 
-    //   });
-    // }
-    
-    // Insert new rating - Always insert a new rating
+    // User has a delivered order for this product, proceed to insert rating
     await db.promise().query(
       `INSERT INTO ratings (user_id, product_id, rating, comment, comment_approved) 
        VALUES (?, ?, ?, ?, ?)`,
