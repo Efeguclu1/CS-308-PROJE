@@ -7,6 +7,7 @@ const {
   sendOrderCancelledEmail,
   sendOrderStatusEmail 
 } = require('../utils/emailService');
+const { decrypt } = require('../utils/simpleEncryption');
 
 // Log all requests to this router
 router.use((req, res, next) => {
@@ -276,6 +277,9 @@ router.patch('/:orderId/status', async (req, res) => {
     }
     
     const order = orderResult[0];
+    // Decrypt user's email and name from the database
+    const userEmail = decrypt(order.email);
+    const userName = decrypt(order.name);
     const previousStatus = order.status;
     
     // If status is 'delivered', also update the delivered_at timestamp
@@ -323,8 +327,8 @@ router.patch('/:orderId/status', async (req, res) => {
         
         // Use the newer combined email service
         await sendOrderStatusEmail({
-          to: order.email,
-          name: order.name,
+          to: userEmail,
+          name: userName,
           orderId: order.id,
           status: status,
           orderDetails: {
@@ -333,7 +337,7 @@ router.patch('/:orderId/status', async (req, res) => {
           }
         });
         
-        console.log(`Status update email sent to ${order.email} for order #${orderId}`);
+        console.log(`Status update email sent to ${userEmail} for order #${orderId}`);
       }
     } catch (emailError) {
       console.error('Error sending status update email:', emailError);
@@ -387,9 +391,13 @@ router.patch('/:orderId/cancel', async (req, res) => {
     }
     
     const order = orders[0];
+    // Decrypt user's email and name from the database
+    const userEmail = decrypt(order.email);
+    const userName = decrypt(order.name);
+    const previousStatus = order.status;
+    
     console.log('Order details:', order);
-    console.log('Current user ID:', req.user.id, '(type:', typeof req.user.id, ')');
-    console.log('Order user ID:', order.user_id, '(type:', typeof order.user_id, ')');
+    console.log('User email (decrypted):', userEmail);
     
     // Convert both IDs to strings for comparison
     const userId = String(req.user.id);
@@ -445,11 +453,11 @@ router.patch('/:orderId/cancel', async (req, res) => {
     
     // Send cancellation email using new combined email method
     try {
-      console.log(`Sending cancellation email to ${order.email}`);
+      console.log(`Sending cancellation email to ${userEmail}`);
       // Use the newer combined email service
       await sendOrderStatusEmail({
-        to: order.email,
-        name: order.name,
+        to: userEmail,
+        name: userName,
         orderId: order.id,
         status: 'cancelled',
         orderDetails: {
@@ -458,7 +466,7 @@ router.patch('/:orderId/cancel', async (req, res) => {
         },
         additionalInfo: req.body.cancellation_reason || 'Customer requested cancellation'
       });
-      console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
+      console.log(`Cancellation email sent to ${userEmail} for order #${orderId}`);
     } catch (emailError) {
       console.error('Error sending cancellation email:', emailError);
       console.error('Email error details:', emailError.message);
@@ -649,6 +657,10 @@ router.post('/:orderId/refund-request', async (req, res) => {
     if (users.length > 0) {
       const user = users[0];
       
+      // Decrypt user's email and name
+      const userEmail = decrypt(user.email);
+      const userName = decrypt(user.name);
+      
       // Get order items for the email
       const [items] = await db.promise().query(
         `SELECT oi.*, p.name as product_name 
@@ -661,8 +673,8 @@ router.post('/:orderId/refund-request', async (req, res) => {
       // Send email notification about refund request
       try {
         await sendOrderStatusEmail({
-          to: user.email,
-          name: user.name,
+          to: userEmail,
+          name: userName,
           orderId: order.id,
           status: 'refund-requested',
           orderDetails: {
@@ -672,7 +684,7 @@ router.post('/:orderId/refund-request', async (req, res) => {
           additionalInfo: reason || 'No reason provided'
         });
         
-        console.log(`Refund request email sent to ${user.email}`);
+        console.log(`Refund request email sent to ${userEmail}`);
       } catch (emailError) {
         console.error('Failed to send refund request email:', emailError);
         // Continue with response even if email fails
