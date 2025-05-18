@@ -10,27 +10,62 @@ const ProductReviews = ({ productId }) => {
   const [stats, setStats] = useState({ averageRating: 0, ratingCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [user, setUser] = useState(null);
+  const [product, setProduct] = useState(null);
+
+  // Fetch reviews for the product
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/ratings/product/${productId}`);
+      setReviews(response.data.ratings);
+      setStats(response.data.stats);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setError('Failed to load reviews. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/ratings/product/${productId}`);
-        setReviews(response.data.ratings);
-        setStats(response.data.stats);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching reviews:', err);
-        setError('Failed to load reviews. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (productId) {
       fetchReviews();
     }
   }, [productId]);
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/ratings/submit`, {
+        userId: user.id,
+        productId: product.id,
+        rating: rating,
+        comment: comment
+      });
+
+      if (response.data.success) {
+        setSuccess(response.data.message);
+        setRating(0);
+        setComment('');
+        // Refresh reviews after successful submission
+        fetchReviews();
+      }
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      setError(err.response?.data?.error || 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Render stars based on rating
   const renderStars = (rating) => {
