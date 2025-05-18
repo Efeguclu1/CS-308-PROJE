@@ -1,15 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const mysql = require('mysql2/promise'); // Import promise-based mysql
 const { getOrGenerateInvoice } = require('../utils/invoiceGenerator');
 const { sendInvoiceEmail } = require('../utils/emailService');
 const { encrypt, decrypt } = require('../utils/simpleEncryption');
 
 // Ödeme işlemini gerçekleştir
 router.post('/process', async (req, res) => {
-  const connection = await db.promise();
-  
   try {
+    // Create a separate promise connection for transaction support
+    const connection = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+    });
+
     const { 
       cardNumber, 
       cardName, 
@@ -46,6 +53,7 @@ router.post('/process', async (req, res) => {
     );
 
     if (!userResult || userResult.length === 0) {
+      await connection.end(); // Make sure to close the connection
       return res.status(400).json({ success: false, error: 'User not found' });
     }
     
@@ -80,6 +88,7 @@ router.post('/process', async (req, res) => {
         [userId, totalAmount, 'processing', deliveryAddress]
       );
       orderId = orderResult.insertId;
+      console.log('Order created with ID:', orderId);
 
       // Add order items and update stock
       for (const item of items) {
@@ -102,29 +111,36 @@ router.post('/process', async (req, res) => {
           'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)',
           [orderId, item.productId, item.quantity, item.price]
         );
+        console.log(`Added order item for product ${item.productId}, quantity ${item.quantity} to order ${orderId}`);
 
         // Update stock
         await connection.query(
           'UPDATE products SET stock = stock - ? WHERE id = ?',
           [item.quantity, item.productId]
         );
+        console.log(`Updated stock for product ${item.productId}`);
       }
 
       // Encrypt sensitive payment data
       const encryptedCardNumber = encrypt(cleanCardNumber);
       const encryptedCardName = encrypt(cardName);
+      const encryptedExpirationMonth = encrypt(expirationMonth);
+      const encryptedExpirationYear = encrypt(expirationYear);
       const encryptedCVV = encrypt(cvv);
 
-      // Store encrypted payment info
+      // Store encrypted payment info - matching the updated table structure
       await connection.query(
         `INSERT INTO payment_info 
-        (order_id, encrypted_card_number, encrypted_card_name, encrypted_cvv, expiration_month, expiration_year) 
+        (order_id, encrypted_card_number, encrypted_card_name, encrypted_expiration_month, encrypted_expiration_year, encrypted_cvv) 
         VALUES (?, ?, ?, ?, ?, ?)`,
-        [orderId, encryptedCardNumber, encryptedCardName, encryptedCVV, expirationMonth, expirationYear]
+        [orderId, encryptedCardNumber, encryptedCardName, encryptedExpirationMonth, encryptedExpirationYear, encryptedCVV]
       );
-
-      // Transaction'ı onayla
+      console.log('Payment info stored encrypted');
+      
+      // Transaction'ı onayla - CRITICAL: THIS MUST EXECUTE
+      console.log('Committing transaction...');
       await connection.commit();
+      console.log('Transaction committed successfully');
       
       // Get order details for invoice generation
       const [orderDetails] = await connection.query(
@@ -227,19 +243,21 @@ router.post('/process', async (req, res) => {
         console.error('2. For Gmail, generate an App Password in Google Account settings');
         console.error('3. Or use a test email service like Ethereal (see .env file)');
       }
-    } catch (invoiceError) {
-      // Log error but don't fail the transaction
-      console.error('Error generating invoice:', invoiceError.message);
+    } catch (error) {
+      // Rollback transaction on error
+      console.error('Error during payment processing:', error);
+      await connection.rollback();
+      await connection.end(); // Close connection
+      
+      return res.status(400).json({ 
+        success: false, 
+        error: error.message || 'Failed to process payment'
+      });
+    } finally {
+      // Always close the connection
+      await connection.end();
     }
     
-    // Check if orderId exists (it should if the transaction was committed)
-    if (!orderId) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to create order - no order ID was generated'
-      });
-    }
-      
     // Başarılı response - always include the orderId
     res.json({ 
       success: true, 
