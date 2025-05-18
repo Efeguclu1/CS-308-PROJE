@@ -33,10 +33,7 @@ const wishlistRoutes = require("./routes/wishlistRoutes");
 const discountRoutes = require('./routes/discountRoutes');
 const revenueRoutes = require('./routes/revenueRoutes');
 const refundRoutes = require('./routes/refundRoutes');
-<<<<<<< HEAD
-
-=======
->>>>>>> 6cad7f7 (merge fıx)
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Debug middleware for orders
 app.use('/api/orders', (req, res, next) => {
@@ -74,10 +71,7 @@ app.use("/api/invoices", verifyToken, invoiceRoutes);
 app.use("/api/discounts", verifyToken, discountRoutes);
 app.use("/api/revenue", verifyToken, revenueRoutes);
 app.use("/api/refunds", verifyToken, refundRoutes);
-<<<<<<< HEAD
-
-=======
->>>>>>> 6cad7f7 (merge fıx)
+app.use("/api/notifications", verifyToken, notificationRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

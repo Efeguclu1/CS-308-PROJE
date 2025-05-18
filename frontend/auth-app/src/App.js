@@ -28,6 +28,7 @@ import Wishlist from './pages/Wishlist';
 import ProductApproval from './pages/ProductApproval';
 import DiscountManagement from './pages/DiscountManagement';
 import RevenueDashboard from './pages/RevenueDashboard';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -84,6 +85,11 @@ function App() {
               <Route path="/orders" element={
                 <ProtectedRoute>
                   <Orders />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/review-approval" element={
