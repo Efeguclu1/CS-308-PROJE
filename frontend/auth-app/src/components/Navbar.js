@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navbar, Nav, Container, Form, Button, InputGroup, NavDropdown } from "react-bootstrap";
+import { Navbar, Nav, Container, Form, Button, InputGroup, NavDropdown, Badge } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,7 @@ const NavigationBar = () => {
   const [expanded, setExpanded] = useState(false);
   const [categories, setCategories] = useState([]);
   const { getItemsCount } = useCart();
-  const { user, logout } = useAuth();
+  const { user, logout, unreadNotificationCount, fetchUnreadNotificationCount } = useAuth();
   const cartCount = getItemsCount();
   const navigate = useNavigate();
 
@@ -28,6 +28,12 @@ const NavigationBar = () => {
 
     fetchCategories();
   }, []);
+
+  // Fetch unread notifications when user changes or component mounts
+  useEffect(() => {
+    // fetchUnreadNotifications logic is now in AuthContext
+    // The effect in AuthContext will call fetchUnreadNotificationCount when user changes
+  }, [user, fetchUnreadNotificationCount]); // Add fetchUnreadNotificationCount as dependency
 
   // Handle search submission
   const handleSearch = (e) => {
@@ -67,13 +73,25 @@ const NavigationBar = () => {
 
     if (user.role === 'product_manager') {
       return (
-        <NavDropdown title={<span><i className="bi bi-person-circle"></i> Product Manager</span>} id="admin-nav-dropdown">
+        <NavDropdown title={
+          <span>
+            <i className="bi bi-person-circle"></i> Product Manager
+          </span>
+        } id="admin-nav-dropdown">
           <NavDropdown.Item as={Link} to="/admin/review-approval">Review Approval</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/admin/order-processing">Order Processing</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/admin/product-management">Product Management</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/notifications">
+            Notifications
+            {unreadNotificationCount > 0 && (
+              <Badge pill bg="danger" className="ms-1 notification-badge">
+                {unreadNotificationCount}
+              </Badge>
+            )}
+          </NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
@@ -83,13 +101,30 @@ const NavigationBar = () => {
 
     if (user.role === 'sales_manager') {
       return (
-        <NavDropdown title={<span><i className="bi bi-person-circle"></i> Sales Manager</span>} id="sales-nav-dropdown">
+        <NavDropdown title={
+          <span>
+            <i className="bi bi-person-circle"></i> Sales Manager
+            {unreadNotificationCount > 0 && (
+              <Badge pill bg="danger" className="ms-1 notification-badge">
+                {unreadNotificationCount}
+              </Badge>
+            )}
+          </span>
+        } id="sales-nav-dropdown">
           <NavDropdown.Item as={Link} to="/product-approval">Price Approval</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/discount-management">Discount Management</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/revenue-dashboard">Revenue Dashboard</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/notifications">
+            Notifications
+            {unreadNotificationCount > 0 && (
+              <Badge pill bg="danger" className="ms-1 notification-badge">
+                {unreadNotificationCount}
+              </Badge>
+            )}
+          </NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
@@ -99,9 +134,26 @@ const NavigationBar = () => {
 
     // Regular customer menu
     return (
-      <NavDropdown title={<span><i className="bi bi-person-circle"></i> My Account</span>} id="user-nav-dropdown">
+      <NavDropdown title={
+        <span>
+          <i className="bi bi-person-circle"></i> My Account
+          {unreadNotificationCount > 0 && (
+            <Badge pill bg="danger" className="ms-1 notification-badge">
+              {unreadNotificationCount}
+            </Badge>
+          )}
+        </span>
+      } id="user-nav-dropdown">
         <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
         <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
+        <NavDropdown.Item as={Link} to="/notifications">
+          Notifications
+          {unreadNotificationCount > 0 && (
+            <Badge pill bg="danger" className="ms-1 notification-badge">
+              {unreadNotificationCount}
+            </Badge>
+          )}
+        </NavDropdown.Item>
         <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
         <NavDropdown.Divider />
         <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>

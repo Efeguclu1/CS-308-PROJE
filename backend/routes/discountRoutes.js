@@ -69,6 +69,65 @@ router.post('/', async (req, res) => {
     `, [result.insertId]);
 
     res.status(201).json(newDiscount[0]);
+
+    // --- Start: Notify wishlisted users about discount ---
+    if (newDiscount.length > 0) {
+      const { product_id, discount_type, discount_value, product_name } = newDiscount[0];
+
+      try {
+        // Find users who have wishlisted this product
+        const [wishlistedUsers] = await db.promise().query(
+          `SELECT u.id, u.name, u.email
+           FROM wishlist w
+           JOIN users u ON w.user_id = u.id
+           WHERE w.product_id = ?`,
+          [product_id]
+        );
+
+        console.log(`Found ${wishlistedUsers.length} users who wishlisted product ${product_id}. Notifying them about the discount.`);
+
+        // Send notification and create database entry for each wishlisted user
+        for (const user of wishlistedUsers) {
+          try {
+            const notificationMessage = `The product you wishlisted, ${product_name}, is now on sale!`;
+            const notificationMetadata = JSON.stringify({
+              product_id: product_id,
+              discount_type: discount_type,
+              discount_value: discount_value,
+              product_name: product_name,
+              // Add other relevant info as needed
+            });
+
+            // Insert notification into the database
+            await db.promise().query(
+              `INSERT INTO notifications (user_id, type, message, metadata)
+               VALUES (?, ?, ?, ?)`,
+              [user.id, 'discount', notificationMessage, notificationMetadata]
+            );
+            console.log(`Created discount notification for user ID ${user.id} for product ${product_name}`);
+
+            // Safely decrypt email before sending (optional, as notification is in DB now)
+            const recipientEmail = safelyDecryptEmail(user.email);
+            if (recipientEmail) {
+              // Email notification can still be sent in addition to DB notification
+              // await sendDiscountNotification(recipientEmail, user.name, product_name, discount_type, discount_value);
+              // console.log(`Sent discount email notification to ${recipientEmail}`);
+            } else {
+              console.warn(`Skipping email notification for user ${user.name}: Invalid or missing email`);
+            }
+
+          } catch (userNotificationError) {
+            console.error(`Error creating notification or sending email for user ${user.name} (ID: ${user.id}) for product ${product_name}:`, userNotificationError);
+            // Continue to the next user even if one fails
+          }
+        }
+      } catch (wishlistError) {
+        console.error('Error fetching wishlisted users or creating notifications:', wishlistError);
+        // Do not block discount creation if fetching users or creating notifications fails
+      }
+    }
+    // --- End: Notify wishlisted users about discount ---
+
   } catch (error) {
     console.error('Error creating discount:', error);
     res.status(500).json({ error: 'Failed to create discount' });
