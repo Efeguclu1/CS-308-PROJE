@@ -51,15 +51,20 @@ router.post('/process', async (req, res) => {
     
     const user = userResult[0];
     
+    // Decrypt user's email from database before using it
+    const decryptedUserEmail = decrypt(user.email);
+    const decryptedUserAddress = decrypt(user.address);
+    const decryptedUserName = decrypt(user.name);
+    
     // Use checkout email if provided, otherwise fall back to user's registered email
-    const invoiceEmail = checkoutEmail || user.email;
+    const invoiceEmail = checkoutEmail || decryptedUserEmail;
     
     // Use shipping address from checkout if provided, otherwise use registered address
-    const deliveryAddress = shippingAddress || user.address;
+    const deliveryAddress = shippingAddress || decryptedUserAddress;
     
     // Log user's email addresses that will be sent the invoice
     console.log(`Processing payment for user ID: ${userId}`);
-    console.log(`User's registered email: ${user.email}`);
+    console.log(`User's registered email (decrypted): ${decryptedUserEmail}`);
     console.log(`Email used for invoice: ${invoiceEmail}`);
     console.log(`Delivery address: ${deliveryAddress}`);
 
@@ -151,7 +156,7 @@ router.post('/process', async (req, res) => {
         // Create user object with shipping address for invoice
         const invoiceUser = {
           id: user.id,
-          name: user.name,
+          name: decryptedUserName,
           email: invoiceEmail,
         };
         
@@ -167,7 +172,7 @@ router.post('/process', async (req, res) => {
         const emailResult = await sendInvoiceEmail({
           to: invoiceEmail, // Using the email from checkout or user record
           subject: `Your Invoice for Order #${orderId}`,
-          text: `Dear ${user.name},\n\nThank you for your purchase. Your order #${orderId} has been processed successfully. Please find your invoice attached.\n\nRegards,\nTechStore Team`,
+          text: `Dear ${decryptedUserName},\n\nThank you for your purchase. Your order #${orderId} has been processed successfully. Please find your invoice attached.\n\nRegards,\nTechStore Team`,
           html: `<!DOCTYPE html>
                 <html>
                 <head>
@@ -188,7 +193,7 @@ router.post('/process', async (req, res) => {
                       <h1>Thank You For Your Order!</h1>
                     </div>
                     <div class="content">
-                      <p>Dear ${user.name},</p>
+                      <p>Dear ${decryptedUserName},</p>
                       <p>Your order #${orderId} has been processed successfully.</p>
                       <p>Please find your invoice attached to this email.</p>
                       <p>If you have any questions, please contact our customer service.</p>

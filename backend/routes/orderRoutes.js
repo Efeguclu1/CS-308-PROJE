@@ -243,9 +243,10 @@ router.get('/:orderId', async (req, res) => {
   }
 });
 
-// Admin: Update order status
+// Sipariş durumunu güncelle
 router.patch('/:orderId/status', async (req, res) => {
   const { orderId } = req.params;
+  const { status } = req.body;
   const { status } = req.body;
   
   console.log(`Updating order ${orderId} status to ${status}`);
@@ -259,6 +260,7 @@ router.patch('/:orderId/status', async (req, res) => {
     });
   }
   
+  if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
   if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status value' });
   }
@@ -276,21 +278,16 @@ router.patch('/:orderId/status', async (req, res) => {
     }
     
     const order = orderResult[0];
+    // Decrypt user's email and name from the database
+    const userEmail = decrypt(order.email);
+    const userName = decrypt(order.name);
     const previousStatus = order.status;
     
-    // If status is 'delivered', also update the delivered_at timestamp
-    let query = '';
-    const params = [];
-    
-    if (status === 'delivered') {
-      query = 'UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?';
-      params.push(status, orderId);
-    } else {
-      query = 'UPDATE orders SET status = ? WHERE id = ?';
-      params.push(status, orderId);
-    }
-    
-    const [result] = await db.promise().query(query, params);
+    // Update the order status
+    const [result] = await db.promise().query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      [status, orderId]
+    );
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Order not found' });
@@ -300,28 +297,23 @@ router.patch('/:orderId/status', async (req, res) => {
     try {
       // Only send email if status has changed
       if (status !== previousStatus) {
-        // Get order items for the email
-        const [items] = await db.promise().query(
-          `SELECT oi.*, p.name as product_name 
-           FROM order_items oi 
-           JOIN products p ON oi.product_id = p.id 
-           WHERE oi.order_id = ?`,
-          [orderId]
-        );
+        // Send in-transit notification
+        if (status === 'in-transit') {
+          await sendOrderInTransitEmail(order.email, order.name, order);
+          console.log(`In-transit email sent to ${order.email} for order #${orderId}`);
+        }
         
-        // Use the newer combined email service
-        await sendOrderStatusEmail({
-          to: order.email,
-          name: order.name,
-          orderId: order.id,
-          status: status,
-          orderDetails: {
-            ...order,
-            items: items || []
-          }
-        });
+        // Send delivered notification
+        else if (status === 'delivered') {
+          await sendOrderDeliveredEmail(order.email, order.name, order);
+          console.log(`Delivered email sent to ${order.email} for order #${orderId}`);
+        }
         
-        console.log(`Status update email sent to ${order.email} for order #${orderId}`);
+        // Send cancellation notification
+        else if (status === 'cancelled') {
+          await sendOrderCancelledEmail(order.email, order.name, order);
+          console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
+        }
       }
     } catch (emailError) {
       console.error('Error sending status update email:', emailError);
@@ -487,9 +479,13 @@ router.post("/create", async (req, res) => {
 });
 
     const order = orders[0];
+    // Decrypt user's email and name from the database
+    const userEmail = decrypt(order.email);
+    const userName = decrypt(order.name);
+    const previousStatus = order.status;
+    
     console.log('Order details:', order);
-    console.log('Current user ID:', req.user.id, '(type:', typeof req.user.id, ')');
-    console.log('Order user ID:', order.user_id, '(type:', typeof order.user_id, ')');
+    console.log('User email (decrypted):', userEmail);
     
     // Convert both IDs to strings for comparison
     const userId = String(req.user.id);
@@ -537,19 +533,8 @@ router.post("/create", async (req, res) => {
 <<<<<<< Updated upstream
     // Send cancellation email (email ve name değerleri artık mevcut)
     try {
-      console.log(`Sending cancellation email to ${order.email}`);
-      // Use the newer combined email service
-      await sendOrderStatusEmail({
-        to: order.email,
-        name: order.name,
-        orderId: order.id,
-        status: 'cancelled',
-        orderDetails: {
-          total_amount: order.total_amount,
-          items: items || []
-        },
-        additionalInfo: req.body.cancellation_reason || 'Customer requested cancellation'
-      });
+      console.log(`Attempting to send email to ${order.email} for user ${order.name}`);
+      await sendOrderCancelledEmail(order.email, order.name, order);
       console.log(`Cancellation email sent to ${order.email} for order #${orderId}`);
     } catch (emailError) {
       console.error('Error sending cancellation email:', emailError);
@@ -712,116 +697,18 @@ router.post("/create", async (req, res) => {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    console.error('===========');
+    if (error.code) console.error('SQL Error code:', error.code);
+    if (error.sqlMessage) console.error('SQL Error message:', error.sqlMessage);
     
-    return res.status(500).json({
-      success: false,
-      error: 'An error occurred while cancelling the order',
-      details: error.message
-    });
-  }
-});
-
-// Delivered durumundaki siparişi refund et (kısa yol)
-router.post('/:orderId/refund-request', async (req, res) => {
-  const { orderId } = req.params;
-  const { reason } = req.body;
-  const userId = req.user.id;
-  
-  console.log(`Processing refund request for order ${orderId} by user ${userId}`);
-  
-  try {
-    // Verify the order exists and belongs to the user
-    const [orders] = await db.promise().query(
-      'SELECT * FROM orders WHERE id = ? AND user_id = ?',
-      [orderId, userId]
-    );
-    
-    if (orders.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Order not found or does not belong to you'
-      });
-    }
-    
-    const order = orders[0];
-    
-    // Verify the order status is 'delivered'
-    if (order.status !== 'delivered') {
-      return res.status(400).json({
-        success: false,
-        error: 'Only delivered orders can be refunded'
-      });
-    }
-    
-    // Create a refund request
-    const [result] = await db.promise().query(
-      `INSERT INTO refund_requests 
-       (order_id, user_id, reason, status, requested_at) 
-       VALUES (?, ?, ?, 'pending', NOW())`,
-      [orderId, userId, reason || 'No reason provided']
-    );
-    
-    if (result.affectedRows === 0) {
-      throw new Error('Failed to create refund request');
-    }
-    
-    // Update order status to indicate a refund is requested
-    await db.promise().query(
-      'UPDATE orders SET status = ? WHERE id = ?',
-      ['refund-requested', orderId]
-    );
-    
-    // Get user info for email
-    const [users] = await db.promise().query(
-      'SELECT email, name FROM users WHERE id = ?',
-      [userId]
-    );
-    
-    if (users.length > 0) {
-      const user = users[0];
-      
-      // Get order items for the email
-      const [items] = await db.promise().query(
-        `SELECT oi.*, p.name as product_name 
-         FROM order_items oi 
-         JOIN products p ON oi.product_id = p.id 
-         WHERE oi.order_id = ?`,
-        [orderId]
-      );
-      
-      // Send email notification about refund request
-      try {
-        await sendOrderStatusEmail({
-          to: user.email,
-          name: user.name,
-          orderId: order.id,
-          status: 'refund-requested',
-          orderDetails: {
-            total_amount: order.total_amount,
-            items: items || []
-          },
-          additionalInfo: reason || 'No reason provided'
-        });
-        
-        console.log(`Refund request email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error('Failed to send refund request email:', emailError);
-        // Continue with response even if email fails
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to cancel order',
+      details: error.message,
+      debug: {
+        errorName: error.name,
+        errorCode: error.code,
+        sqlMessage: error.sqlMessage
       }
-    }
-    
-    res.json({
-      success: true,
-      message: 'Refund request submitted successfully',
-      refundId: result.insertId
-    });
-  } catch (error) {
-    console.error('Error processing refund request:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to process refund request',
-      details: error.message
     });
   }
 });

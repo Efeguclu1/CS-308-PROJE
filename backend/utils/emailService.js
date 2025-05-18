@@ -3,6 +3,25 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 const { createTestEmailTransporter } = require('./testEmailService');
+const { decrypt } = require('./simpleEncryption');
+
+// Function to safely decrypt an email address if it seems to be encrypted
+function safelyDecryptEmail(email) {
+  if (!email) return null;
+  
+  try {
+    // Check if the email might be encrypted (encrypted emails are typically hex strings)
+    if (/^[a-f0-9]+$/i.test(email)) {
+      console.log('Found encrypted email, attempting to decrypt');
+      return decrypt(email);
+    }
+    // If it already looks like an email, return as is
+    return email;
+  } catch (error) {
+    console.error('Error decrypting email:', error);
+    return email; // Return original if decryption fails
+  }
+}
 
 // Flag to use test email (Ethereal) instead of real emails
 const USE_TEST_EMAIL = process.env.USE_TEST_EMAIL === 'true' || process.env.EMAIL_PASSWORD === 'your_app_password';
@@ -55,10 +74,13 @@ const createTransporter = async () => {
  */
 const sendInvoiceEmail = async (options) => {
   try {
-    console.log(`Sending invoice email to registered address: ${options.to}`);
+    // Ensure the email is decrypted if needed
+    const recipientEmail = safelyDecryptEmail(options.to);
+    
+    console.log(`Sending invoice email to registered address: ${recipientEmail}`);
     
     // Validate email options
-    if (!options.to) {
+    if (!recipientEmail) {
       throw new Error('Recipient email address is missing');
     }
     
@@ -67,7 +89,7 @@ const sendInvoiceEmail = async (options) => {
     // Basic email options
     const mailOptions = {
       from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
-      to: options.to,
+      to: recipientEmail,
       subject: options.subject || 'Your Invoice',
       text: options.text || 'Please find your invoice attached.',
       html: options.html || '<p>Please find your invoice attached.</p>'
@@ -138,7 +160,9 @@ const sendInvoiceEmail = async (options) => {
  * @returns {Promise} - Result of email sending operation
  */
 async function sendOrderInTransitEmail(email, name, order) {
-  console.log(`Sending in-transit notification to: ${email}`);
+  // Decrypt email if needed
+  const recipientEmail = safelyDecryptEmail(email);
+  console.log(`Sending in-transit notification to: ${recipientEmail}`);
   
   const subject = `Order #${order.id} Update: Your Order is On Its Way!`;
   
@@ -162,7 +186,7 @@ async function sendOrderInTransitEmail(email, name, order) {
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
-      to: email,
+      to: recipientEmail,
       subject,
       html
     };
@@ -366,7 +390,9 @@ async function sendPriceApprovalNotification(email, name, productName, price) {
 async function sendOrderStatusEmail(options) {
   try {
     const { to, name, orderId, status, orderDetails, additionalInfo } = options;
-    console.log(`Sending order status update email to ${to} for order ${orderId} - Status: ${status}`);
+    // Decrypt the email if needed
+    const recipientEmail = safelyDecryptEmail(to);
+    console.log(`Sending order status update email to ${recipientEmail} for order ${orderId} - Status: ${status}`);
     
     let subject = `Order #${orderId} Update`;
     let statusMessage = '';
@@ -504,14 +530,14 @@ async function sendOrderStatusEmail(options) {
     // Mail options
     const mailOptions = {
       from: process.env.EMAIL_FROM || (isTestAccount ? `E-Commerce Store <${testAccount.user}>` : '"E-Commerce Store" <store@example.com>'),
-      to,
+      to: recipientEmail,
       subject,
       html
     };
     
     // Send email
     const info = await transporter.sendMail(mailOptions);
-    console.log(`Order status email sent to ${to}, messageId: ${info.messageId}`);
+    console.log(`Order status email sent to ${recipientEmail}, messageId: ${info.messageId}`);
     
     // For test accounts, log preview URL
     if (isTestAccount) {
