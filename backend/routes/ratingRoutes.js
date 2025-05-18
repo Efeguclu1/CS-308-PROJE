@@ -121,27 +121,27 @@ router.post('/submit', async (req, res) => {
     }
     
     // Check if user has already rated this product
-    const [existingRating] = await db.promise().query(
-      `SELECT id FROM ratings WHERE user_id = ? AND product_id = ?`,
-      [userId, productId]
-    );
+    // const [existingRating] = await db.promise().query(
+    //   `SELECT id FROM ratings WHERE user_id = ? AND product_id = ?`,
+    //   [userId, productId]
+    // );
     
-    if (existingRating.length > 0) {
-      // Update existing rating
-      await db.promise().query(
-        `UPDATE ratings 
-         SET rating = ?, comment = ?, comment_approved = ? 
-         WHERE user_id = ? AND product_id = ?`,
-        [rating, comment, comment ? 0 : null, userId, productId]
-      );
+    // if (existingRating.length > 0) {
+    //   // Update existing rating - REMOVED
+    //   await db.promise().query(
+    //     `UPDATE ratings 
+    //      SET rating = ?, comment = ?, comment_approved = ? 
+    //      WHERE user_id = ? AND product_id = ?`,
+    //     [rating, comment, comment ? 0 : null, userId, productId]
+    //   );
       
-      return res.json({ 
-        success: true, 
-        message: 'Rating updated successfully. Your comment will be visible after approval.' 
-      });
-    }
+    //   return res.json({ 
+    //     success: true, 
+    //     message: 'Rating updated successfully. Your comment will be visible after approval.' 
+    //   });
+    // }
     
-    // Insert new rating
+    // Insert new rating - Always insert a new rating
     await db.promise().query(
       `INSERT INTO ratings (user_id, product_id, rating, comment, comment_approved) 
        VALUES (?, ?, ?, ?, ?)`,
@@ -163,6 +163,28 @@ router.put('/approve/:ratingId', async (req, res) => {
   const { ratingId } = req.params;
   
   try {
+    // Get the rating to be approved to find user_id and product_id
+    const [ratingToApprove] = await db.promise().query(
+      `SELECT user_id, product_id FROM ratings WHERE id = ?`,
+      [ratingId]
+    );
+
+    if (ratingToApprove.length === 0) {
+      return res.status(404).json({ error: 'Rating not found' });
+    }
+
+    const { user_id, product_id } = ratingToApprove[0];
+
+    // Deactivate previous approved comments for the same user and product
+    // We'll set comment_approved to 2 (or another value indicating deactivated)
+    await db.promise().query(
+      `UPDATE ratings 
+       SET comment_approved = 2 
+       WHERE user_id = ? AND product_id = ? AND id != ? AND comment_approved = 1`,
+      [user_id, product_id, ratingId]
+    );
+
+    // Approve the current comment
     await db.promise().query(
       `UPDATE ratings SET comment_approved = 1 WHERE id = ?`,
       [ratingId]
