@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const { decrypt } = require('../utils/simpleEncryption');
 
 // Get approved ratings and all ratings for a specific product
 router.get('/product/:productId', async (req, res) => {
@@ -24,9 +25,15 @@ router.get('/product/:productId', async (req, res) => {
        WHERE product_id = ?`,
       [productId]
     );
+
+    // Decrypt user names before sending
+    const decryptedRatings = ratings.map(rating => ({
+        ...rating,
+        user_name: rating.user_name ? decrypt(rating.user_name) : null
+    }));
     
     res.json({
-      ratings,
+      ratings: decryptedRatings,
       stats: {
         averageRating: avgRating[0].average_rating || 0,
         ratingCount: avgRating[0].rating_count || 0
@@ -53,7 +60,13 @@ router.get('/admin/product/:productId', async (req, res) => {
       [productId]
     );
     
-    res.json(ratings);
+    // Decrypt user names before sending
+    const decryptedRatings = ratings.map(rating => ({
+        ...rating,
+        user_name: rating.user_name ? decrypt(rating.user_name) : null
+    }));
+
+    res.json(decryptedRatings);
   } catch (error) {
     console.error('Error fetching admin ratings:', error);
     res.status(500).json({ error: 'Failed to fetch ratings' });
@@ -73,7 +86,13 @@ router.get('/admin/pending', async (req, res) => {
        ORDER BY r.created_at DESC`
     );
     
-    res.json(pendingReviews);
+    // Decrypt user names before sending
+    const decryptedPendingReviews = pendingReviews.map(review => ({
+        ...review,
+        user_name: review.user_name ? decrypt(review.user_name) : null
+    }));
+
+    res.json(decryptedPendingReviews);
   } catch (error) {
     console.error('Error fetching pending reviews:', error);
     res.status(500).json({ error: 'Failed to fetch pending reviews' });
