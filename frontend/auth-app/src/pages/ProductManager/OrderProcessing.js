@@ -374,7 +374,9 @@ const OrderProcessing = () => {
                         <th>User</th>
                         <th>Total Amount</th>
                         <th>Items</th>
+                        <th>Product IDs</th>
                         <th>Date</th>
+                        <th>Delivery Address</th>
                         <th>Status</th>
                         <th>Actions</th>
                       </tr>
@@ -386,7 +388,28 @@ const OrderProcessing = () => {
                           <td>{order.user_name || `User #${order.user_id}`}</td>
                           <td>${parseFloat(order.total_amount || 0).toFixed(2)}</td>
                           <td>{order.items?.length || 0} items</td>
+                          <td>
+                            {order.items?.map(item => (
+                              <div key={item.id}>
+                                <small>{item.product_id}</small>
+                              </div>
+                            ))}
+                          </td>
                           <td>{formatDate(order.created_at)}</td>
+                          <td>
+                            <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {order.delivery_address || order.full_address || 'Address not available'}
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                onClick={() => {
+                                  alert(order.delivery_address || order.full_address || 'No address available');
+                                }}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </td>
                           <td>
                             <Badge bg={getStatusBadgeClass(order.status)}>
                               {order.status || 'Processing'}
@@ -515,6 +538,37 @@ const OrderProcessing = () => {
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
             </Form.Group>
+            
+            {currentOrder && (
+              <>
+                <Card className="mb-3">
+                  <Card.Header>Order Details</Card.Header>
+                  <Card.Body>
+                    <p><strong>Customer:</strong> {currentOrder.user_name || `User #${currentOrder.user_id}`}</p>
+                    <p><strong>Total Amount:</strong> ${parseFloat(currentOrder.total_amount || 0).toFixed(2)}</p>
+                    <p><strong>Items:</strong> {currentOrder.items?.length || 0}</p>
+                    
+                    <div className="mb-2">
+                      <strong>Product IDs:</strong>
+                      <ul className="mb-0 ps-3">
+                        {currentOrder.items?.map(item => (
+                          <li key={item.id}>
+                            {item.product_id} - {item.product_name} (Qty: {item.quantity})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <strong>Delivery Address:</strong>
+                      <p className="mb-0">
+                        {currentOrder.delivery_address || currentOrder.full_address || 'No address available'}
+                      </p>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </>
+            )}
             
             <Form.Group className="mb-3">
               <Form.Label>Admin Note</Form.Label>
