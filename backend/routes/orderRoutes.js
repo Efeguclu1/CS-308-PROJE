@@ -59,11 +59,14 @@ router.get('/', async (req, res) => {
       return res.json([]);
     }
     
-    // Get order items for each order
+    // Decrypt user names and get order items for each order
     const ordersWithItems = [];
     
     for (const order of orders) {
       try {
+        // Decrypt the user_name
+        const decryptedUserName = decrypt(order.user_name);
+
         console.log(`Fetching items for order ${order.id}`);
         const [items] = await db.promise().query(
           `SELECT oi.*, p.name as product_name 
@@ -75,6 +78,7 @@ router.get('/', async (req, res) => {
         
         ordersWithItems.push({
           ...order,
+          user_name: decryptedUserName, // Use the decrypted name
           full_address: order.delivery_address,
           items: items || []
         });
@@ -82,6 +86,8 @@ router.get('/', async (req, res) => {
         console.error(`Error fetching items for order ${order.id}:`, itemError);
         ordersWithItems.push({
           ...order,
+          // If item fetching fails, still include the decrypted username
+          user_name: decrypt(order.user_name),
           items: []
         });
       }
