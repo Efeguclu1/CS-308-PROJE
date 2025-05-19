@@ -59,8 +59,13 @@
     .nav-dropdown {
       margin: 0 15px;
       
+      // Specific style for the Sales Manager dropdown menu
+      &#sales-nav-dropdown + .dropdown-menu { // Target dropdown-menu sibling of the toggle
+        min-width: 450px !important; // Increased min-width and added !important
+      }
+
       .dropdown-toggle {
-        color: #333;
+        color: #fff;
         font-weight: 500;
         padding: 8px 0;
         text-decoration: none;
@@ -68,19 +73,48 @@
         border: none;
         
         &::after {
-          display: none;
+          display: inline-block; // Show the caret
+          margin-left: 0.255em;
+          vertical-align: 0.255em;
+          content: "";
+          border-top: 0.3em solid;
+          border-right: 0.3em solid transparent;
+          border-bottom: 0;
+          border-left: 0.3em solid transparent;
+        }
+        
+        // Adjust color for the dropdown caret to match text
+        &::after {
+          color: #fff; 
         }
         
         &:hover {
-          color: #568203;
+          color: #d4d4d4; // Slightly lighter on hover
+        }
+        
+        // Style for the icon and text inside the dropdown toggle
+        span {
+          display: flex;
+          align-items: center;
+
+          i {
+            margin-right: 5px;
+            font-size: 18px;
+          }
         }
       }
       
       .dropdown-menu {
+        width: auto !important; /* Override default 100% width */
+        min-width: 250px !important; // minimum width
+        width: max-content !important; // içerik kadar genişlesin
+        white-space: nowrap !important; // satır kaydırmasın
+        padding: 10px 0 !important; // içerik üst-alt boşluk
+        box-sizing: border-box;
+        z-index: 1050; // diğer öğelerin üstünde olsun
         border-radius: 0;
         margin-top: 0;
         border: 1px solid #e5e5e5;
-        padding: 15px 0;
         
         .dropdown-item {
           padding: 8px 20px;
@@ -243,4 +277,15 @@
     outline: none;
     box-shadow: none;
   }
-} 
+}
+
+// Force dropdown menu width to be content-based and prevent overflow
+div.dropdown-menu.show {
+  min-width: 250px !important; /* Ensure a minimum width */
+  width: max-content !important; /* Let width be determined by content */
+  white-space: nowrap !important; /* Prevent text wrapping */
+  box-sizing: border-box !important;
+}
+
+// You can also adjust max-width if needed, but be cautious:
+// max-width: 400px !important; 
