@@ -11,6 +11,7 @@ const Profile = () => {
     name: '',
     email: '',
     address: '',
+    tax_id: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -24,7 +25,8 @@ const Profile = () => {
         ...prev,
         name: user.name || '',
         email: user.email || '',
-        address: user.address || ''
+        address: user.address || '',
+        tax_id: user.tax_id || ''
       }));
     }
   }, [user]);
@@ -57,6 +59,7 @@ const Profile = () => {
         name: formData.name,
         email: formData.email,
         address: formData.address,
+        tax_id: formData.tax_id,
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
       });
@@ -133,6 +136,20 @@ const Profile = () => {
                     value={formData.address}
                     onChange={handleChange}
                   />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Tax ID (Optional)</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="tax_id"
+                    placeholder="Enter your tax ID for invoices"
+                    value={formData.tax_id}
+                    onChange={handleChange}
+                  />
+                  <Form.Text className="text-muted">
+                    Your Tax ID will be displayed on invoices for business purchases.
+                  </Form.Text>
                 </Form.Group>
 
                 <hr className="my-4" />

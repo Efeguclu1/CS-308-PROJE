@@ -154,7 +154,7 @@ router.get('/:orderId', async (req, res) => {
     
     // Get user information (needed for the invoice content)
     const [users] = await db.promise().query(
-      'SELECT id, name, email, address FROM users WHERE id = ?',
+      'SELECT id, name, email, address, tax_id FROM users WHERE id = ?',
       [order.user_id] 
     );
     
@@ -174,6 +174,13 @@ router.get('/:orderId', async (req, res) => {
       user.name = decrypt(user.name);
       user.email = decrypt(user.email);
       user.address = decrypt(user.address);
+      // Decrypt tax_id if it exists
+      if (user.tax_id) {
+        user.tax_id = decrypt(user.tax_id);
+        console.log('Decrypted tax_id:', user.tax_id);
+      } else {
+        console.log('No tax_id found for user:', user.id);
+      }
     } catch (decryptError) {
       console.log('Fields might not be encrypted or decryption failed:', decryptError);
     }

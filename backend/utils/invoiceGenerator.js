@@ -35,6 +35,15 @@ const generateInvoice = async (order, user) => {
   const invoiceFilename = `invoice-${order.id}-${Date.now()}.pdf`;
   const invoicePath = path.join(invoiceDir, invoiceFilename);
   
+  // Debug log to check user object and tax_id
+  console.log('Generating invoice with user data:', {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    hasTaxId: !!user.tax_id,
+    taxId: user.tax_id
+  });
+  
   return new Promise((resolve, reject) => {
     try {
       // Create PDF document with a better margin and UTF-8 encoding
@@ -115,11 +124,24 @@ const generateInvoice = async (order, user) => {
       // Make sure the address wraps properly with enough space
       const cleanAddress = order.delivery_address ? order.delivery_address.replace(/[^\x00-\x7F]/g, '') : 'Address not provided';
       
-      doc.text(cleanAddress, 50 + columnWidth, topSectionY + 60, {
-        width: columnWidth - 20,
-        height: 100, // Increased height to ensure visibility
-        ellipsis: false
-      });
+      // Add Tax ID if it exists
+      if (user.tax_id) {
+        console.log('Adding tax ID to invoice:', user.tax_id);
+        doc.text(`Tax ID: ${user.tax_id}`, 50 + columnWidth, topSectionY + 60);
+        // Adjust the starting position for the address
+        doc.text(cleanAddress, 50 + columnWidth, topSectionY + 75, {
+          width: columnWidth - 20,
+          height: 100,
+          ellipsis: false
+        });
+      } else {
+        console.log('No tax ID found for user, skipping tax ID section');
+        doc.text(cleanAddress, 50 + columnWidth, topSectionY + 60, {
+          width: columnWidth - 20,
+          height: 100, // Increased height to ensure visibility
+          ellipsis: false
+        });
+      }
       
       // Items table
       const tableTop = topSectionY + 140;
