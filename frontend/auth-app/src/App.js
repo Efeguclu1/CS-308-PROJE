@@ -29,6 +29,7 @@ import ProductApproval from './pages/ProductApproval';
 import DiscountManagement from './pages/DiscountManagement';
 import RevenueDashboard from './pages/RevenueDashboard';
 import NotificationsPage from './pages/NotificationsPage';
+import InvoiceManagement from './pages/InvoiceManagement';
 
 // Set up axios interceptors
 setupAxiosInterceptors(axios);
@@ -120,6 +121,11 @@ function App() {
               <Route path="/revenue-dashboard" element={
                 <ProtectedRoute requiredRole="sales_manager">
                   <RevenueDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/invoice-management" element={
+                <ProtectedRoute requiredRole="sales_manager">
+                  <InvoiceManagement />
                 </ProtectedRoute>
               } />
             </Routes>

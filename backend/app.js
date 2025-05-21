@@ -48,6 +48,51 @@ app.use('/api/orders', (req, res, next) => {
   next();
 });
 
+// Debug route to list all registered routes
+app.get('/api/debug/routes', (req, res) => {
+  const routes = [];
+  
+  // Get all registered routes
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods).join(', ')
+      });
+    } else if (middleware.name === 'router') {
+      // Router middleware
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          const path = handler.route.path;
+          const baseUrl = middleware.regexp.toString()
+            .replace('\\^', '')
+            .replace('\\/?(?=\\/|$)', '')
+            .replace(/\\\//g, '/');
+          
+          const routePath = baseUrl.replace(/\(\?:\(\[\^\\\/]\+\?\)\)/g, ':id');
+          
+          routes.push({
+            path: routePath + path,
+            methods: Object.keys(handler.route.methods).join(', ')
+          });
+        }
+      });
+    }
+  });
+  
+  // Also log all routes to the console
+  console.log('All registered routes:');
+  routes.forEach(route => {
+    console.log(`${route.methods.toUpperCase()} ${route.path}`);
+  });
+  
+  res.json({
+    routeCount: routes.length,
+    routes: routes
+  });
+});
+
 // Test endpoint for token verification
 app.get('/api/test-auth', verifyToken, (req, res) => {
   console.log('Test auth endpoint called, verified user:', req.user);
