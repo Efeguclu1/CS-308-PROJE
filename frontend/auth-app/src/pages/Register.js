@@ -11,6 +11,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [address, setAddress] = useState("");
+  const [taxId, setTaxId] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState(""); // "success" or "danger"
   const navigate = useNavigate();
@@ -30,7 +31,8 @@ const Register = () => {
         name,
         email,
         password,
-        address
+        address,
+        tax_id: taxId
       });
 
       if (response && response.data) {
@@ -124,6 +126,20 @@ const Register = () => {
                       onChange={(e) => setAddress(e.target.value)} 
                       required 
                     />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Tax ID (Optional)</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      className="form-control py-2" 
+                      placeholder="Enter your tax ID for invoices"
+                      value={taxId}
+                      onChange={(e) => setTaxId(e.target.value)} 
+                    />
+                    <Form.Text className="text-muted small">
+                      Your Tax ID will be displayed on invoices for business purchases.
+                    </Form.Text>
                   </Form.Group>
                   
                   <Form.Group className="mb-3">

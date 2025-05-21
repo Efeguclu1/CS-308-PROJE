@@ -48,7 +48,7 @@ router.post('/process', async (req, res) => {
 
     // Get user's address and email directly from database to ensure correct registered email
     const [userResult] = await connection.query(
-      'SELECT id, name, email, address FROM users WHERE id = ?',
+      'SELECT id, name, email, address, tax_id FROM users WHERE id = ?',
       [userId]
     );
 
@@ -63,6 +63,8 @@ router.post('/process', async (req, res) => {
     const decryptedUserEmail = decrypt(user.email);
     const decryptedUserAddress = decrypt(user.address);
     const decryptedUserName = decrypt(user.name);
+    // Decrypt tax_id if it exists
+    const decryptedTaxId = user.tax_id ? decrypt(user.tax_id) : null;
     
     // Use checkout email if provided, otherwise fall back to user's registered email
     const invoiceEmail = checkoutEmail || decryptedUserEmail;
@@ -174,7 +176,17 @@ router.post('/process', async (req, res) => {
           id: user.id,
           name: decryptedUserName,
           email: invoiceEmail,
+          tax_id: decryptedTaxId
         };
+        
+        // Debug log to check tax_id
+        console.log('Invoice user object:', {
+          id: invoiceUser.id,
+          name: invoiceUser.name,
+          email: invoiceUser.email,
+          hasTaxId: !!invoiceUser.tax_id,
+          taxId: invoiceUser.tax_id
+        });
         
         // Make sure the shipping address is explicitly set on the order
         order.delivery_address = deliveryAddress;
