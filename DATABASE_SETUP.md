@@ -1,6 +1,24 @@
-# Veritabanı Kurulum ve Güncelleme Adımları
+# Veritabanı Kurulum Adımları
 
-## İlk Kurulum
+## Yeni Konsolide Kurulum (Önerilen)
+Artık tüm veritabanı kurulum ve güncelleme adımları tek bir SQL dosyasında birleştirilmiştir:
+
+1. MySQL veritabanını oluşturun ve tüm tabloları tek adımda kurun:
+   ```bash
+   mysql -u your_username -p < database_setup.sql
+   ```
+
+Bu dosya aşağıdaki bileşenleri içerir:
+- Veritabanı oluşturma
+- Tüm temel tablolar (users, products, orders, vb.)
+- Ek özellik tabloları (payment_info, refund_requests, discounts, vb.)
+- Tax ID desteği
+- Tetikleyiciler (triggers)
+- Örnek veriler
+
+## Eski Kurulum Yöntemi (Kullanımdan Kaldırılmıştır)
+Aşağıdaki adımlar artık önerilmemektedir, bunun yerine yukarıdaki konsolide kurulum yöntemini kullanın:
+
 1. MySQL veritabanını oluşturun:
    ```sql
    CREATE DATABASE online_store;
@@ -17,36 +35,10 @@
    mysql -u your_username -p online_store < sample_data.sql
    ```
 
-## Güncellemeler
-Aşağıdaki SQL dosyalarını sırasıyla çalıştırın:
-
-1. Sipariş teslim tarihi için:
-   ```bash
-   mysql -u your_username -p online_store < alter_orders_table.sql
-   ```
-
-2. Bildirimler için:
-   ```bash
-   mysql -u your_username -p online_store < create_notifications_table.sql
-   ```
-
-3. İndirimler için:
-   ```bash
-   mysql -u your_username -p online_store < create_discounts_table.sql
-   ```
-
-4. Ürün maliyeti için:
-   ```bash
-   mysql -u your_username -p online_store < add_cost_column.sql
-   ```
-
-5. Bildirim ve indirim güncellemeleri için:
-   ```bash
-   mysql -u your_username -p online_store < update_notifications_and_discounts.sql
-   ```
+4. Güncellemeleri uygulayın (alter_orders_table.sql, create_notifications_table.sql, vb.)
 
 ## Önemli Notlar
-- Tüm SQL dosyaları projenin kök dizininde bulunmaktadır
-- Veritabanı güncellemelerini sırasıyla yapmanız önemlidir
+- Yeni kurulum dosyası (`database_setup.sql`) tüm gerekli tabloları, indeksleri ve örnek verileri içerir
+- Tax ID özelliği için gerekli sütun ve indeks otomatik olarak oluşturulur
 - Herhangi bir hata durumunda, MySQL hata mesajını kontrol edin
 - Safe update mode hataları için `SET SQL_SAFE_UPDATES = 0;` komutunu kullanabilirsiniz 
