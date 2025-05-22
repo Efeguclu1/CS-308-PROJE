@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: techstore-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: '2001'
+      MYSQL_DATABASE: online_store
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - techstore-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techstore-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASS: '2001'
+      DB_NAME: online_store
+      NODE_ENV: production
+      JWT_SECRET: your_secret_key_here
+      ENCRYPTION_KEY: your_encryption_key_here
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - techstore-network
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend/auth-app
+      dockerfile: Dockerfile
+    container_name: techstore-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - techstore-network
+
+networks:
+  techstore-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local 
