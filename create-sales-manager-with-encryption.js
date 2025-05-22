@@ -1,11 +1,13 @@
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2');
+const { encrypt } = require('./backend/utils/simpleEncryption');
+require('dotenv').config();
 
-const password = 'sales123'; // Sales manager şifresi
-const email = 'sale@example.com'; // Sales manager email'i
-const address = 'Sales Office Address'; // Sales manager adresi
+const password = 'sales123'; // Sales manager password
+const email = 'sale@example.com'; // Sales manager email
+const address = 'Sales Office Address'; // Sales manager address
 
-// Veritabanı bağlantısı
+// Database connection
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
@@ -15,17 +17,22 @@ const db = mysql.createConnection({
 
 async function createSalesManager() {
   try {
-    // Şifreyi hash'le
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Sales manager kullanıcısını ekle
+    // Encrypt user data
+    const encryptedEmail = encrypt(email.trim().toLowerCase());
+    const encryptedName = encrypt('Sales Manager');
+    const encryptedAddress = encrypt(address);
+
+    // Add sales manager user
     const query = `
       INSERT INTO users (email, password, name, role, address) 
-      VALUES (?, ?, 'Sales Manager', 'sales_manager', ?)
+      VALUES (?, ?, ?, 'sales_manager', ?)
     `;
 
-    db.query(query, [email, hashedPassword, address], (err, result) => {
+    db.query(query, [encryptedEmail, hashedPassword, encryptedName, encryptedAddress], (err, result) => {
       if (err) {
         console.error('Error creating sales manager:', err);
         process.exit(1);

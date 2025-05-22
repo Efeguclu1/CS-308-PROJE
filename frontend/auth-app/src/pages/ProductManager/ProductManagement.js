@@ -409,7 +409,7 @@ const ProductManagement = () => {
         setError('Authentication token is missing. Please log in again.');
         return;
       }
-
+      
       if (!productToUpdateStock) {
         setError('No product selected for stock update.');
         return;
@@ -428,7 +428,7 @@ const ProductManagement = () => {
           }
         }
       );
-
+      
       // Update products in state
       setProducts(products.map(p => 
         p.id === productToUpdateStock.id 
@@ -445,8 +445,8 @@ const ProductManagement = () => {
       }, 3000);
     } catch (err) {
       console.error('Error updating stock:', err);
-      setError(err.response?.data?.error || 'Error updating stock. Please try again.');
-    }
+        setError(err.response?.data?.error || 'Error updating stock. Please try again.');
+      }
   };
 
   // Handle category form input changes
@@ -644,7 +644,7 @@ const ProductManagement = () => {
         </Col>
         <Col md={3}>
           <Form.Select 
-            value={filterCategory}
+            value={filterCategory} 
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <option value="">All Categories</option>

@@ -30,7 +30,7 @@ const path = require('path');
 const dbConfig = {
   host: 'localhost',
   user: 'root',
-  password: 'password',
+  password: '2001',
   database: 'online_store',
 };
 
