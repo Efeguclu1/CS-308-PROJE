@@ -309,9 +309,6 @@ const OrderProcessing = () => {
               <Nav.Item>
                 <Nav.Link eventKey="orders">Order Processing</Nav.Link>
               </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="refunds">Refund Management</Nav.Link>
-              </Nav.Item>
             </Nav>
           </Card.Header>
           <Card.Body>
@@ -422,90 +419,6 @@ const OrderProcessing = () => {
                               onClick={() => handleStatusChange(order)}
                             >
                               Update Status
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                )}
-              </Tab.Pane>
-              
-              <Tab.Pane eventKey="refunds">
-                <Row className="mb-3">
-                  <Col>
-                    <Button 
-                      variant="outline-primary" 
-                      onClick={() => fetchRefundRequests()}
-                      disabled={refundLoading}
-                      className="mb-2"
-                    >
-                      {refundLoading ? (
-                        <>
-                          <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                          Loading...
-                        </>
-                      ) : 'Refresh Refund Requests'}
-                    </Button>
-                  </Col>
-                </Row>
-                
-                {refundLoading ? (
-                  <div className="text-center my-5">
-                    <Spinner animation="border" role="status">
-                      <span className="visually-hidden">Loading refund requests...</span>
-                    </Spinner>
-                  </div>
-                ) : authError ? (
-                  <Alert variant="danger">
-                    <h5>Authentication Error</h5>
-                    <p>You do not have permission to access refund management.</p>
-                  </Alert>
-                ) : refundRequests.length === 0 ? (
-                  <Alert variant="info">
-                    No refund requests pending.
-                  </Alert>
-                ) : (
-                  <Table responsive className="refund-table">
-                    <thead>
-                      <tr>
-                        <th>Order ID</th>
-                        <th>Refund ID</th>
-                        <th>User</th>
-                        <th>Total Amount</th>
-                        <th>Date</th>
-                        <th>Refund Reason</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {refundRequests.map(request => (
-                        <tr key={request.id}>
-                          <td>{request.id}</td>
-                          <td>{request.refund_id || 'Unknown'}</td>
-                          <td>{request.user_name || `User #${request.user_id}`}</td>
-                          <td>${parseFloat(request.total_amount || 0).toFixed(2)}</td>
-                          <td>{formatDate(request.created_at)}</td>
-                          <td>
-                            <div style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {request.refund_reason || 'No reason provided'}
-                            </div>
-                          </td>
-                          <td>
-                            <Button 
-                              variant="outline-success" 
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handleProcessRefund(request, 'approve')}
-                            >
-                              Approve
-                            </Button>
-                            <Button 
-                              variant="outline-danger" 
-                              size="sm"
-                              onClick={() => handleProcessRefund(request, 'deny')}
-                            >
-                              Deny
                             </Button>
                           </td>
                         </tr>

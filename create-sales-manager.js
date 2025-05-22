@@ -9,8 +9,8 @@ const address = 'Sales Office Address'; // Sales manager adresi
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'root',
-  database: 'cs308project',
+  password: 'Zargana.987',
+  database: 'online_store',
 });
 
 async function createSalesManager() {

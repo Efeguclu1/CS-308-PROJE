@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
+    
     // Check localStorage for user data
     const token = getToken();
     const userData = getUserData();

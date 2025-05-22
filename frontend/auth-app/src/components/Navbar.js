@@ -115,10 +115,13 @@ const NavigationBar = () => {
           <NavDropdown.Item as={Link} to="/discount-management">Discount Management</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/invoice-management">Invoice Management</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/revenue-dashboard">Revenue Dashboard</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/sales/refunds">Refund Management</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/wishlist">My Wishlist</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/notifications">
+          
+
             Notifications
             {unreadNotificationCount > 0 && (
               <Badge pill bg="danger" className="ms-1 notification-badge">
