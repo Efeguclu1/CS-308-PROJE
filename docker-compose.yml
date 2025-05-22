@@ -7,7 +7,7 @@ services:
     container_name: techstore-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: '2001'
+      MYSQL_ROOT_PASSWORD: "2001"
       MYSQL_DATABASE: online_store
     ports:
       - "3307:3306"
@@ -16,6 +16,15 @@ services:
       - ./init-db:/docker-entrypoint-initdb.d
     networks:
       - techstore-network
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --bind-address=0.0.0.0
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p2001"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Backend API
   backend:
@@ -25,15 +34,16 @@ services:
     container_name: techstore-backend
     restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DB_HOST: db
-      DB_USER: root
-      DB_PASS: '2001'
+      DB_USER: "root"
+      DB_PASS: "2001"
       DB_NAME: online_store
       NODE_ENV: production
       JWT_SECRET: your_secret_key_here
-      ENCRYPTION_KEY: your_encryption_key_here
+      ENCRYPTION_KEY: 12345678901234567890123456789012
     ports:
       - "5001:5001"
     volumes:

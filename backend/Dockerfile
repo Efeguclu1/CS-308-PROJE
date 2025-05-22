@@ -13,6 +13,9 @@ COPY . .
 ENV NODE_ENV=production
 ENV PORT=5001
 
+# Modify the entry point to use our Docker-specific database configuration
+RUN cp config/db.docker.js config/db.js
+
 # Expose the port the app runs on
 EXPOSE 5001
 

@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS discounts;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS payment_info;
 
 -- Create users table
 CREATE TABLE users (
@@ -122,6 +123,19 @@ CREATE TABLE ratings (
   CONSTRAINT ratings_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id),
   CONSTRAINT ratings_ibfk_2 FOREIGN KEY (product_id) REFERENCES products (id),
   CONSTRAINT ratings_chk_1 CHECK (rating BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create payment_info table
+CREATE TABLE IF NOT EXISTS payment_info (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  encrypted_card_number VARCHAR(255) NOT NULL,
+  encrypted_card_name VARCHAR(255) NOT NULL,
+  encrypted_expiration_month VARCHAR(255) NOT NULL, -- Was just expiration_month before
+  encrypted_expiration_year VARCHAR(255) NOT NULL,  -- Was just expiration_year before
+  encrypted_cvv VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Create wishlist table
