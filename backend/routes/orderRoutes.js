@@ -247,7 +247,7 @@ router.get('/:orderId', async (req, res) => {
 // Admin: Update order status
 router.patch('/:orderId/status', async (req, res) => {
   const { orderId } = req.params;
-  const { status } = req.body;
+  const { status, adminNote } = req.body;
   
   console.log(`Updating order ${orderId} status to ${status}`);
   console.log('User from token:', req.user);
@@ -260,7 +260,7 @@ router.patch('/:orderId/status', async (req, res) => {
     });
   }
   
-  if (!['processing', 'in-transit', 'delivered', 'cancelled'].includes(status)) {
+  if (!['processing', 'in-transit', 'delivered', 'cancelled', 'refund-requested', 'refund-approved', 'refund-denied'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status value' });
   }
   
@@ -283,11 +283,23 @@ router.patch('/:orderId/status', async (req, res) => {
     const params = [];
     
     if (status === 'delivered') {
-      query = 'UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?';
-      params.push(status, orderId);
+      // Include admin_note if provided
+      if (adminNote) {
+        query = 'UPDATE orders SET status = ?, delivered_at = NOW(), admin_note = ? WHERE id = ?';
+        params.push(status, adminNote, orderId);
+      } else {
+        query = 'UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?';
+        params.push(status, orderId);
+      }
     } else {
-      query = 'UPDATE orders SET status = ? WHERE id = ?';
-      params.push(status, orderId);
+      // Include admin_note if provided
+      if (adminNote) {
+        query = 'UPDATE orders SET status = ?, admin_note = ? WHERE id = ?';
+        params.push(status, adminNote, orderId);
+      } else {
+        query = 'UPDATE orders SET status = ? WHERE id = ?';
+        params.push(status, orderId);
+      }
     }
     
     const [result] = await db.promise().query(query, params);
