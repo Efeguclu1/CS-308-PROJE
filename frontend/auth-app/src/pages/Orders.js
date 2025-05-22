@@ -459,82 +459,11 @@ const Orders = () => {
                             <h6 className="mb-2">Shipping Address:</h6>
                             <p className="text-muted mb-0">{order.delivery_address || 'Not specified'}</p>
                           </div>
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-                          <div className="mt-3">
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(order.id)}
-                              disabled={downloadingInvoice[order.id]}
-                              className="mt-2 me-2"
-                            >
-                              {downloadingInvoice[order.id] ? (
-                                <>
-                                  <Spinner 
-                                    as="span" 
-                                    animation="border" 
-                                    size="sm" 
-                                    role="status" 
-                                    aria-hidden="true" 
-                                    className="me-1"
-                                  />
-                                  Downloading...
-                                </>
-                              ) : (
-                                <>
-                                  <FaFileInvoice className="me-1" />
-                                  Download Invoice
-                                </>
-                              )}
-                            </Button>
-                            {order.status === 'processing' && (
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleCancelOrder(order.id)}
-                                disabled={cancellingOrder[order.id]}
-                                className="mt-2"
-                              >
-                                {cancellingOrder[order.id] ? (
-                                  <>
-                                    <Spinner 
-                                      as="span" 
-                                      animation="border" 
-                                      size="sm" 
-                                      role="status" 
-                                      aria-hidden="true" 
-                                      className="me-1"
-                                    />
-                                    Cancelling...
-                                  </>
-                                ) : (
-                                  'Cancel Order'
-                                )}
-                              </Button>
-                            )}
-                            {order.status === 'delivered' && (
-                              <Button
-                                 variant="outline-warning"
-                                 size="sm"
-                                 className="mt-2 ms-2"
-                                 onClick={() => handleRefundRequest(order.id)}
-                                  >
-                                 Request Refund
-                                 </Button>
-                            )}
-                          </div>
-=======
-=======
->>>>>>> 6cad7f7 (merge fıx)
-=======
                           {order.status === 'delivered' && order.delivered_at && (
                             <p className="text-muted mb-1">
                               <small>Delivered on: {formatDate(order.delivered_at)}</small>
                             </p>
                           )}
->>>>>>> 362a822 (test)
                           {renderOrderActions(order)}
                         </div>
                       </Col>
