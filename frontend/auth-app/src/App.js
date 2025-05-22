@@ -30,7 +30,7 @@ import DiscountManagement from './pages/DiscountManagement';
 import RevenueDashboard from './pages/RevenueDashboard';
 import NotificationsPage from './pages/NotificationsPage';
 import InvoiceManagement from './pages/InvoiceManagement';
-import SalesRefundPanel from './pages/SalesRefundPanel';
+import SalesRefundPanel from './pages/SalesRefunPanel';
 
 
 
