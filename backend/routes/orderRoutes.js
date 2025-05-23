@@ -23,11 +23,11 @@ router.get('/', async (req, res) => {
   console.log('Request query:', req.query);
   console.log('Auth user from token:', req.user);
   
-  // Check if user is admin or product manager
-  if (!req.user || req.user.role !== 'product_manager') {
+  // Check if user is admin, product manager, or sales manager (for refund management)
+  if (!req.user || !['product_manager', 'sales_manager'].includes(req.user.role)) {
     return res.status(403).json({ 
       success: false, 
-      error: 'Unauthorized. Only product managers can access this endpoint' 
+      error: 'Unauthorized. Only product managers and sales managers can access this endpoint' 
     });
   }
   
@@ -50,6 +50,7 @@ router.get('/', async (req, res) => {
     // Add order by
     query += ' ORDER BY o.created_at DESC';
     
+    console.log('Executing query:', query);
     const [orders] = await db.promise().query(query, params);
     
     console.log(`Found ${orders.length} orders`);
@@ -59,14 +60,26 @@ router.get('/', async (req, res) => {
       return res.json([]);
     }
     
-    // Decrypt user names and get order items for each order
+    // Get order items for each order
     const ordersWithItems = [];
     
     for (const order of orders) {
       try {
-        // Decrypt the user_name
-        const decryptedUserName = decrypt(order.user_name);
-
+        console.log(`Processing order ${order.id}`);
+        
+        // Check if the name looks like it's encrypted (hexadecimal string)
+        let userName = order.user_name;
+        if (userName && /^[0-9a-f]{32}$/i.test(userName)) {
+          // Only try to decrypt if it looks like a valid encrypted hex string
+          try {
+            userName = decrypt(userName);
+            console.log(`Successfully decrypted name for order ${order.id}`);
+          } catch (decryptError) {
+            console.warn(`Failed to decrypt name for order ${order.id}, using as is: ${decryptError.message}`);
+            // Keep the original value if decryption fails
+          }
+        }
+        
         console.log(`Fetching items for order ${order.id}`);
         const [items] = await db.promise().query(
           `SELECT oi.*, p.name as product_name 
@@ -76,23 +89,30 @@ router.get('/', async (req, res) => {
           [order.id]
         );
         
+        console.log(`Successfully fetched ${items.length} items for order ${order.id}`);
+        
+        // Format address directly from the order
+        const fullAddress = order.delivery_address || 'No address provided';
+        
         ordersWithItems.push({
           ...order,
-          user_name: decryptedUserName, // Use the decrypted name
-          full_address: order.delivery_address,
+          user_name: userName,
+          full_address: fullAddress,
           items: items || []
         });
       } catch (itemError) {
-        console.error(`Error fetching items for order ${order.id}:`, itemError);
+        console.error(`Error processing order ${order.id}:`, itemError);
+        console.error('Error stack:', itemError.stack);
+        
+        // Add the order even if item fetching fails, to avoid one bad order breaking everything
         ordersWithItems.push({
           ...order,
-          // If item fetching fails, still include the decrypted username
-          user_name: decrypt(order.user_name),
           items: []
         });
       }
     }
     
+    console.log(`Successfully processed ${ordersWithItems.length} orders, sending response`);
     res.json(ordersWithItems);
   } catch (error) {
     console.error('Error fetching all orders:', error);
@@ -285,9 +305,25 @@ router.patch('/:orderId/status', async (req, res) => {
     }
     
     const order = orderResult[0];
-    // Decrypt user's email and name from the database
-    const userEmail = decrypt(order.email);
-    const userName = decrypt(order.name);
+    let userEmail;
+    try {
+      userEmail = decrypt(order.email);
+    } catch (e) {
+      console.warn(`Failed to decrypt email for order ${orderId}, using raw value: ${order.email}`);
+      userEmail = order.email; // Use raw email if decryption fails
+    }
+    
+    // Handle potentially encrypted name
+    let userName = order.name;
+    if (userName && /^[0-9a-f]{32}$/i.test(userName)) {
+      try {
+        userName = decrypt(userName);
+      } catch (e) {
+        console.warn(`Failed to decrypt name for order ${orderId}, using raw value`);
+        // Keep original value if decryption fails
+      }
+    }
+    
     const previousStatus = order.status;
     
     // If status is 'delivered', also update the delivered_at timestamp
@@ -399,9 +435,25 @@ router.patch('/:orderId/cancel', async (req, res) => {
     }
     
     const order = orders[0];
-    // Decrypt user's email and name from the database
-    const userEmail = decrypt(order.email);
-    const userName = decrypt(order.name);
+    let userEmail;
+    try {
+      userEmail = decrypt(order.email);
+    } catch (e) {
+      console.warn(`Failed to decrypt email for order ${orderId} during cancellation, using raw value: ${order.email}`);
+      userEmail = order.email; // Use raw email if decryption fails
+    }
+    
+    // Handle potentially encrypted name
+    let userName = order.name;
+    if (userName && /^[0-9a-f]{32}$/i.test(userName)) {
+      try {
+        userName = decrypt(userName);
+      } catch (e) {
+        console.warn(`Failed to decrypt name for order ${orderId} during cancellation, using raw value`);
+        // Keep original value if decryption fails
+      }
+    }
+    
     const previousStatus = order.status;
     
     console.log('Order details:', order);
@@ -665,9 +717,24 @@ router.post('/:orderId/refund-request', async (req, res) => {
     if (users.length > 0) {
       const user = users[0];
       
-      // Decrypt user's email and name
-      const userEmail = decrypt(user.email);
-      const userName = decrypt(user.name);
+      let userEmail;
+      try {
+        userEmail = decrypt(user.email);
+      } catch (e) {
+        console.warn(`Failed to decrypt email for user ${userId} during refund request, using raw value: ${user.email}`);
+        userEmail = user.email; // Use raw email if decryption fails
+      }
+      
+      // Handle potentially encrypted name
+      let userName = user.name;
+      if (userName && /^[0-9a-f]{32}$/i.test(userName)) {
+        try {
+          userName = decrypt(userName);
+        } catch (e) {
+          console.warn(`Failed to decrypt name for user ${userId} during refund request, using raw value`);
+          // Keep original value if decryption fails
+        }
+      }
       
       // Get order items for the email
       const [items] = await db.promise().query(

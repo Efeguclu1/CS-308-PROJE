@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 const verifyToken = require("../middleware/auth");
-const { sendOrderStatusEmail } = require("../utils/emailService");
 
 // Refund isteği oluştur (sadece kullanıcı token ile erişebilir)
 router.post("/request", verifyToken, async (req, res) => {
@@ -51,33 +50,26 @@ router.post("/request", verifyToken, async (req, res) => {
       [reason, order_id]
     );
 
-    // Send email notification for refund request
-    try {
-      // Get order items
-      const [items] = await db.promise().query(
-        `SELECT oi.*, p.name as product_name 
-         FROM order_items oi 
-         JOIN products p ON oi.product_id = p.id 
-         WHERE oi.order_id = ?`,
-        [order_id]
-      );
 
-      // Send the email
-      await sendOrderStatusEmail({
-        to: order.email,
-        name: order.name,
-        orderId: order.id,
-        status: 'refund-requested',
-        orderDetails: {
-          ...order,
-          items: items || []
-        },
-        additionalInfo: reason
+
+    // Create notification for the user
+    try {
+      const notificationMessage = `Your refund request for Order #${order_id} has been submitted and is being reviewed. You will be notified when a decision is made.`;
+      const notificationMetadata = JSON.stringify({
+        order_id: order_id,
+        type: 'refund_requested',
+        reason: reason || null
       });
-      console.log(`Refund request email sent to ${order.email}`);
-    } catch (emailError) {
-      console.error('Failed to send refund request email:', emailError);
-      // Continue with response even if email fails
+
+      await db.promise().query(
+        `INSERT INTO notifications (user_id, type, message, metadata)
+         VALUES (?, ?, ?, ?)`,
+        [user_id, 'refund_requested', notificationMessage, notificationMetadata]
+      );
+      console.log(`Created refund request notification for user ID ${user_id}`);
+    } catch (notificationError) {
+      console.error('Error creating refund request notification:', notificationError);
+      // Don't fail the refund if notification creation fails
     }
 
     // Transaction tamamla
@@ -95,7 +87,14 @@ router.post("/request", verifyToken, async (req, res) => {
 });
 
 // Refund onayla (admin erişimi varsayılır)
-router.patch("/approve/:id", async (req, res) => {
+router.patch("/approve/:id", verifyToken, async (req, res) => {
+  // Check if user is sales manager
+  if (!req.user || req.user.role !== 'sales_manager') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Unauthorized. Only sales managers can approve refunds' 
+    });
+  }
   const refundId = req.params.id;
   const { adminNote } = req.body;
   console.log(`===== REFUND APPROVE DEBUG =====`);
@@ -144,37 +143,80 @@ router.patch("/approve/:id", async (req, res) => {
       [refundRequest.order_id]
     );
     
-    if (orders.length > 0) {
-      // Send email notification for refund approval
-      try {
-        const order = orders[0];
-        
-        // Get order items
-        const [items] = await db.promise().query(
-          `SELECT oi.*, p.name as product_name 
-           FROM order_items oi 
-           JOIN products p ON oi.product_id = p.id 
-           WHERE oi.order_id = ?`,
-          [refundRequest.order_id]
-        );
-
-        // Send the email
-        await sendOrderStatusEmail({
-          to: order.email,
-          name: order.name,
-          orderId: order.id,
-          status: 'refund-approved',
-          orderDetails: {
-            ...order,
-            items: items || []
-          },
-          additionalInfo: adminNote
-        });
-        console.log(`Refund approval email sent to ${order.email}`);
-      } catch (emailError) {
-        console.error('Failed to send refund approval email:', emailError);
-        // Continue with response even if email fails
+    // Get order items to restore product stock
+    const [orderItems] = await db.promise().query(
+      `SELECT oi.*, p.name, p.stock
+       FROM order_items oi
+       JOIN products p ON oi.product_id = p.id
+       WHERE oi.order_id = ?`,
+      [refundRequest.order_id]
+    );
+    
+    console.log(`Found ${orderItems.length} items to update stock for refund approval`);
+    
+    // Update stock for each item in the order
+    let stockUpdateSuccess = true;
+    for (const item of orderItems) {
+      console.log(`Updating stock for product ${item.product_id} (${item.name}), current stock: ${item.stock}, adding: ${item.quantity}`);
+      
+      // Lock the product row for update
+      const [currentProductData] = await db.promise().query(
+        'SELECT id, stock FROM products WHERE id = ? FOR UPDATE',
+        [item.product_id]
+      );
+      
+      if (currentProductData.length === 0) {
+        console.error(`Product ${item.product_id} not found!`);
+        stockUpdateSuccess = false;
+        continue;
       }
+      
+      // Increase stock (add the refunded quantity back)
+      const updateQuery = 'UPDATE products SET stock = stock + ? WHERE id = ?';
+      const [updateResult] = await db.promise().query(updateQuery, [item.quantity, item.product_id]);
+      
+      if (updateResult.affectedRows === 0) {
+        console.error(`Failed to update stock for product ${item.product_id}`);
+        stockUpdateSuccess = false;
+      }
+      
+      // Verify the update
+      const [updatedProduct] = await db.promise().query(
+        'SELECT id, name, stock FROM products WHERE id = ?',
+        [item.product_id]
+      );
+      
+      if (updatedProduct.length > 0) {
+        console.log(`Product ${item.product_id} new stock: ${updatedProduct[0].stock} (was: ${item.stock}, change: +${item.quantity})`);
+      }
+    }
+    
+    if (!stockUpdateSuccess) {
+      console.error(`CRITICAL: Some product stock updates failed for refund ${refundId}. Manual intervention may be required.`);
+      // Continue with the refund process despite stock update issues
+    }
+    
+
+
+    // Create notification for the user
+    try {
+      const notificationMessage = `Your refund request for Order #${refundRequest.order_id} has been approved. The refund will be processed to your original payment method.`;
+      const notificationMetadata = JSON.stringify({
+        order_id: refundRequest.order_id,
+        refund_id: refundId,
+        type: 'refund_approved',
+        admin_note: adminNote || null
+      });
+
+      await db.promise().query(
+        `INSERT INTO notifications (user_id, type, message, metadata)
+         VALUES (?, ?, ?, ?)`,
+        [refundRequest.user_id, 'refund_approved', notificationMessage, notificationMetadata]
+      );
+      console.log(`Created refund approval notification for user ID ${refundRequest.user_id}`);
+    } catch (notificationError) {
+      console.error('Error creating refund approval notification:', notificationError);
+      // Don't fail the refund if notification creation fails
     }
 
     // Transaction tamamla
@@ -205,7 +247,14 @@ router.patch("/approve/:id", async (req, res) => {
 });
 
 // Refund reddet
-router.patch("/reject/:id", async (req, res) => {
+router.patch("/reject/:id", verifyToken, async (req, res) => {
+  // Check if user is sales manager
+  if (!req.user || req.user.role !== 'sales_manager') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Unauthorized. Only sales managers can reject refunds' 
+    });
+  }
   const refundId = req.params.id;
   const { adminNote } = req.body;
   console.log(`===== REFUND REJECT DEBUG =====`);
@@ -254,37 +303,27 @@ router.patch("/reject/:id", async (req, res) => {
       [refundRequest.order_id]
     );
     
-    if (orders.length > 0) {
-      // Send email notification for refund denial
-      try {
-        const order = orders[0];
-        
-        // Get order items
-        const [items] = await db.promise().query(
-          `SELECT oi.*, p.name as product_name 
-           FROM order_items oi 
-           JOIN products p ON oi.product_id = p.id 
-           WHERE oi.order_id = ?`,
-          [refundRequest.order_id]
-        );
 
-        // Send the email
-        await sendOrderStatusEmail({
-          to: order.email,
-          name: order.name,
-          orderId: order.id,
-          status: 'refund-denied',
-          orderDetails: {
-            ...order,
-            items: items || []
-          },
-          additionalInfo: adminNote
-        });
-        console.log(`Refund denial email sent to ${order.email}`);
-      } catch (emailError) {
-        console.error('Failed to send refund denial email:', emailError);
-        // Continue with response even if email fails
-      }
+
+    // Create notification for the user
+    try {
+      const notificationMessage = `Your refund request for Order #${refundRequest.order_id} has been denied.${adminNote ? ` Reason: ${adminNote}` : ''}`;
+      const notificationMetadata = JSON.stringify({
+        order_id: refundRequest.order_id,
+        refund_id: refundId,
+        type: 'refund_denied',
+        admin_note: adminNote || null
+      });
+
+      await db.promise().query(
+        `INSERT INTO notifications (user_id, type, message, metadata)
+         VALUES (?, ?, ?, ?)`,
+        [refundRequest.user_id, 'refund_denied', notificationMessage, notificationMetadata]
+      );
+      console.log(`Created refund denial notification for user ID ${refundRequest.user_id}`);
+    } catch (notificationError) {
+      console.error('Error creating refund denial notification:', notificationError);
+      // Don't fail the refund if notification creation fails
     }
 
     // Transaction tamamla
@@ -315,7 +354,14 @@ router.patch("/reject/:id", async (req, res) => {
 });
 
 // Get refund request by order ID
-router.get("/order/:orderId", async (req, res) => {
+router.get("/order/:orderId", verifyToken, async (req, res) => {
+  // Check if user is sales manager or is the order owner
+  if (!req.user || (req.user.role !== 'sales_manager' && req.user.role !== 'customer')) {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Unauthorized. Only sales managers or order owners can access refund details' 
+    });
+  }
   const { orderId } = req.params;
   console.log(`Fetching refund request for order ID: ${orderId}`);
 

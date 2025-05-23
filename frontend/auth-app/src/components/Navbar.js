@@ -114,6 +114,7 @@ const NavigationBar = () => {
           <NavDropdown.Item as={Link} to="/product-approval">Price Approval</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/discount-management">Discount Management</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/invoice-management">Invoice Management</NavDropdown.Item>
+          <NavDropdown.Item as={Link} to="/refund-management">Refund Management</NavDropdown.Item>
           <NavDropdown.Item as={Link} to="/revenue-dashboard">Revenue Dashboard</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item as={Link} to="/orders">My Orders</NavDropdown.Item>

@@ -18,11 +18,23 @@ router.get('/product/:productId', async (req, res) => {
       [productId]
     );
     
-    // Decrypt user names
-    const decryptedRatings = ratings.map(rating => ({
-      ...rating,
-      user_name: decrypt(rating.user_name)
-    }));
+    // Decrypt user names with error handling
+    const decryptedRatings = ratings.map(rating => {
+      let userName = rating.user_name;
+      // Check if the name looks like it's encrypted (hexadecimal string)
+      if (userName && /^[0-9a-f]{32,}$/i.test(userName)) {
+        try {
+          userName = decrypt(userName);
+        } catch (decryptError) {
+          console.warn(`Failed to decrypt name for rating ${rating.id}, using default`);
+          userName = 'Anonymous User';
+        }
+      }
+      return {
+        ...rating,
+        user_name: userName || 'Anonymous User'
+      };
+    });
     
     // Calculate average rating
     const [avgRating] = await db.promise().query(
@@ -60,11 +72,23 @@ router.get('/admin/product/:productId', async (req, res) => {
       [productId]
     );
     
-    // Decrypt user names
-    const decryptedRatings = ratings.map(rating => ({
-      ...rating,
-      user_name: decrypt(rating.user_name)
-    }));
+    // Decrypt user names with error handling
+    const decryptedRatings = ratings.map(rating => {
+      let userName = rating.user_name;
+      // Check if the name looks like it's encrypted (hexadecimal string)
+      if (userName && /^[0-9a-f]{32,}$/i.test(userName)) {
+        try {
+          userName = decrypt(userName);
+        } catch (decryptError) {
+          console.warn(`Failed to decrypt name for rating ${rating.id}, using default`);
+          userName = 'Anonymous User';
+        }
+      }
+      return {
+        ...rating,
+        user_name: userName || 'Anonymous User'
+      };
+    });
 
     res.json(decryptedRatings);
   } catch (error) {
@@ -86,11 +110,23 @@ router.get('/admin/pending', async (req, res) => {
        ORDER BY r.created_at DESC`
     );
     
-    // Decrypt user names
-    const decryptedPendingReviews = pendingReviews.map(review => ({
-      ...review,
-      user_name: decrypt(review.user_name)
-    }));
+    // Decrypt user names with error handling
+    const decryptedPendingReviews = pendingReviews.map(review => {
+      let userName = review.user_name;
+      // Check if the name looks like it's encrypted (hexadecimal string)
+      if (userName && /^[0-9a-f]{32,}$/i.test(userName)) {
+        try {
+          userName = decrypt(userName);
+        } catch (decryptError) {
+          console.warn(`Failed to decrypt name for review ${review.id}, using default`);
+          userName = 'Anonymous User';
+        }
+      }
+      return {
+        ...review,
+        user_name: userName || 'Anonymous User'
+      };
+    });
 
     res.json(decryptedPendingReviews);
   } catch (error) {

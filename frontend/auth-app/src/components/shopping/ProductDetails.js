@@ -195,6 +195,18 @@ const ProductDetails = () => {
             
             <Col md={6} className="product-image-section">
               {(() => {
+                // First try to use image_url from database
+                if (product.image_url) {
+                  return (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: '8px', background: '#f8f9fa' }}
+                    />
+                  );
+                }
+                
+                // Fall back to hardcoded mappings
                 let imageUrl = '';
                 switch (product.name) {
                   case "iPhone 15 Pro":

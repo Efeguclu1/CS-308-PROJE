@@ -75,6 +75,55 @@ router.post("/categories/create", verifyToken, (req, res) => {
   }
 });
 
+// Delete category (only for product managers)
+router.delete("/categories/:id", verifyToken, (req, res) => {
+  console.log("Deleting category - ID:", req.params.id);
+  
+  // Check if user has product_manager role
+  if (req.user.role !== 'product_manager') {
+    return res.status(403).json({ error: "Unauthorized. Only product managers can access this endpoint." });
+  }
+  
+  const categoryId = req.params.id;
+  
+  // First check if there are any products in this category
+  db.query(
+    "SELECT COUNT(*) as count FROM products WHERE category_id = ?",
+    [categoryId],
+    (err, results) => {
+      if (err) {
+        console.error('Query error:', err);
+        return res.status(500).json({ error: "Error checking category references." });
+      }
+      
+      if (results[0].count > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete category as it contains products. Please move or delete the products first."
+        });
+      }
+      
+      // If no products reference the category, proceed with deletion
+      db.query(
+        "DELETE FROM categories WHERE id = ?",
+        [categoryId],
+        (err, results) => {
+          if (err) {
+            console.error('Delete error:', err);
+            return res.status(500).json({ error: "Error deleting category." });
+          }
+          
+          if (results.affectedRows === 0) {
+            return res.status(404).json({ error: "Category not found." });
+          }
+          
+          console.log("Category deleted successfully, ID:", categoryId);
+          res.json({ message: "Category deleted successfully" });
+        }
+      );
+    }
+  );
+});
+
 // Get products by category
 router.get("/category/:categoryId", (req, res) => {
   const categoryId = req.params.categoryId;

@@ -58,6 +58,10 @@ const ProductManagement = () => {
     description: ''
   });
   const [categoryFormErrors, setCategoryFormErrors] = useState({});
+  
+  // State for category delete confirmation modal
+  const [showCategoryDeleteModal, setShowCategoryDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   // Fetch products and categories on component mount
   useEffect(() => {
@@ -379,15 +383,22 @@ const ProductManagement = () => {
       });
       
       setProducts(productsResponse.data);
-      setSuccess('Product deleted successfully');
+      setSuccess(`Product "${productToDelete.name}" deleted successfully!`);
       setShowDeleteModal(false);
       setProductToDelete(null);
     } catch (err) {
+      let errorMessage = 'Error deleting product. Please try again.';
+      
       if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else {
-        setError(err.response?.data?.error || 'Error deleting product. Please try again.');
+        errorMessage = 'Your session has expired. Please log in again.';
+      } else if (err.response?.status === 400 && err.response?.data?.error?.includes('referenced in orders')) {
+        errorMessage = `Cannot delete "${productToDelete?.name}" because it has been ordered before. Use the "Hide" button to remove it from customer view while preserving order history.`;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
       }
+      
+      setError(errorMessage);
+      setShowDeleteModal(false);
       console.error('Error deleting product:', err);
     } finally {
       setLoading(false);
@@ -524,6 +535,58 @@ const ProductManagement = () => {
     }
   };
 
+  // Handle category delete confirmation
+  const handleConfirmDeleteCategory = (category) => {
+    setCategoryToDelete(category);
+    setShowCategoryDeleteModal(true);
+  };
+
+  // Delete category
+  const handleDeleteCategory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication token is missing. Please log in again.');
+        return;
+      }
+
+      if (!categoryToDelete) {
+        setError('No category selected for deletion.');
+        return;
+      }
+
+      await axios.delete(`${API_BASE_URL}/products/categories/${categoryToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      // Remove the category from the categories state
+      setCategories(categories.filter(category => category.id !== categoryToDelete.id));
+
+      // Reset any products that were filtered by this category
+      if (filterCategory == categoryToDelete.id) {
+        setFilterCategory('');
+      }
+
+      // Show success message
+      setSuccess(`Category "${categoryToDelete.name}" deleted successfully!`);
+      
+      // Reset and close modal
+      setCategoryToDelete(null);
+      setShowCategoryDeleteModal(false);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      setError(err.response?.data?.error || 'Error deleting category. Please try again.');
+      setShowCategoryDeleteModal(false);
+    }
+  };
+
   // Toggle product visibility
   const handleToggleVisibility = async (product) => {
     try {
@@ -614,6 +677,9 @@ const ProductManagement = () => {
           <Alert variant="info">
             <strong>Important:</strong> As a Product Manager, you can add, edit, and delete products, but pricing is set by Sales Managers. 
             Products won't be visible to customers until a Sales Manager sets the price.
+            <br /><br />
+            <strong>Note on Deletion:</strong> Products that have been ordered cannot be deleted to preserve order history. 
+            Use the "Hide" button instead to remove them from customer view.
           </Alert>
         </Col>
         <Col xs="auto">
@@ -662,6 +728,33 @@ const ProductManagement = () => {
         </Col>
         <Col md={2} className="text-end">
           <span className="me-2">Total: {filteredProducts.length}</span>
+        </Col>
+      </Row>
+
+      {/* Category Management Section */}
+      <Row className="mb-4">
+        <Col>
+          <div className="bg-light p-3 rounded">
+            <h5 className="mb-3">Category Management</h5>
+            <div className="d-flex flex-wrap gap-2">
+              {categories.map(category => (
+                <div key={category.id} className="d-flex align-items-center bg-white rounded p-2 border">
+                  <span className="me-2">{category.name}</span>
+                  <Button 
+                    variant="outline-danger" 
+                    size="sm"
+                    onClick={() => handleConfirmDeleteCategory(category)}
+                    title="Delete Category"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
+              {categories.length === 0 && (
+                <span className="text-muted">No categories available</span>
+              )}
+            </div>
+          </div>
         </Col>
       </Row>
 
@@ -974,17 +1067,35 @@ const ProductManagement = () => {
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
+          <Modal.Title>Confirm Delete Product</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Are you sure you want to delete the product "{productToDelete?.name}"?
+          <p>Are you sure you want to delete the product "<strong>{productToDelete?.name}</strong>"?</p>
+          
           <Alert variant="warning" className="mt-3">
-            This action cannot be undone. If the product has been ordered, consider making it invisible instead.
+            <h6>⚠️ Important Notes:</h6>
+            <ul className="mb-0">
+              <li><strong>Products that have been ordered cannot be deleted</strong> to maintain order history and data integrity.</li>
+              <li>If deletion fails, consider <strong>hiding the product</strong> instead using the "Hide" button in the product list.</li>
+              <li>Hidden products won't be visible to customers but preserve all order history.</li>
+              <li>Only products that have never been ordered can be permanently deleted.</li>
+            </ul>
+          </Alert>
+          
+          <Alert variant="info" className="mt-2">
+            <strong>Alternative:</strong> If you want to remove this product from customer view, 
+            cancel this dialog and use the <Badge bg="warning">Hide</Badge> button instead.
           </Alert>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Cancel
+          </Button>
+          <Button variant="outline-warning" onClick={() => {
+            setShowDeleteModal(false);
+            handleToggleVisibility(productToDelete);
+          }}>
+            Hide Product Instead
           </Button>
           <Button variant="danger" onClick={handleDeleteProduct} disabled={loading}>
             {loading ? (
@@ -999,7 +1110,7 @@ const ProductManagement = () => {
                 <span className="ms-2">Deleting...</span>
               </>
             ) : (
-              'Delete Product'
+              'Permanently Delete'
             )}
           </Button>
         </Modal.Footer>
@@ -1100,6 +1211,40 @@ const ProductManagement = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Category Delete Confirmation Modal */}
+      <Modal show={showCategoryDeleteModal} onHide={() => setShowCategoryDeleteModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete Category</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete the category "{categoryToDelete?.name}"?
+          <Alert variant="warning" className="mt-3">
+            This action cannot be undone. Make sure there are no products in this category before deleting.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCategoryDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteCategory} disabled={loading}>
+            {loading ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />
+                <span className="ms-2">Deleting...</span>
+              </>
+            ) : (
+              'Delete Category'
+            )}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

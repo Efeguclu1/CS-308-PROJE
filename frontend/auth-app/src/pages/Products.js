@@ -54,7 +54,8 @@ const Products = () => {
       
       // Add image URLs to products
       const productsWithImages = response.data.map(product => {
-        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        // First try to use image_url from database, then fallback to mapping
+        const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
         return {
           ...product,
           image: imageUrl
@@ -83,7 +84,8 @@ const Products = () => {
       
       // Add image URLs to products
       const productsWithImages = response.data.map(product => {
-        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        // First try to use image_url from database, then fallback to mapping
+        const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
         return {
           ...product,
           image: imageUrl
@@ -117,7 +119,8 @@ const Products = () => {
       
       // Add image URLs to products
       const productsWithImages = response.data.map(product => {
-        const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+        // First try to use image_url from database, then fallback to mapping
+        const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
         return {
           ...product,
           image: imageUrl
@@ -304,7 +307,7 @@ const Products = () => {
           
           // Add image URLs to products
           const productsWithImages = response.data.map(product => {
-            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
             return {
               ...product,
               image: imageUrl
@@ -335,7 +338,7 @@ const Products = () => {
           
           // Add image URLs to products
           const productsWithImages = response.data.map(product => {
-            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
             return {
               ...product,
               image: imageUrl
@@ -366,7 +369,7 @@ const Products = () => {
           
           // Add image URLs to products
           const productsWithImages = response.data.map(product => {
-            const imageUrl = productImages[product.name] || 'https://via.placeholder.com/150';
+            const imageUrl = product.image_url || productImages[product.name] || 'https://via.placeholder.com/150';
             return {
               ...product,
               image: imageUrl
