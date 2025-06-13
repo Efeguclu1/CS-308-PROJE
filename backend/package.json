@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "mocha tests/unit-tests.js"
+    "test": "mocha tests/unit-tests.js tests/additional-unit-tests.js",
+    "test:original": "mocha tests/unit-tests.js",
+    "test:additional": "mocha tests/additional-unit-tests.js",
+    "test:all": "mocha tests/*.js"
   },
   "keywords": [],
   "author": "",
